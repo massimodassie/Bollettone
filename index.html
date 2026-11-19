@@ -179,16 +179,40 @@
     ];
 
     const MARKETS = [
+      const MARKETS = [
       { key: '1X2 ESITO FINALE', label: '1X2 Esito Finale', suggestions: ['1', 'X', '2'] },
-      { key: 'DOPPIA CHANCE', label: 'Doppia Chance', suggestions: ['1X', 'X2', '12'] },
-      { key: 'UNDER/OVER 2.5', label: 'Under/Over 2.5', suggestions: ['OVER 2.5', 'UNDER 2.5'] },
+      { key: 'DOPPIA CHANCE', label: 'Doppia Chance (IN / OUT / IN-OUT)', suggestions: ['1X', 'X2', '12'] },
+      { key: 'UNDER/OVER 0.5', label: 'Under / Over 0.5', suggestions: ['OVER 0.5', 'UNDER 0.5'] },
+      { key: 'UNDER/OVER 1.5', label: 'Under / Over 1.5', suggestions: ['OVER 1.5', 'UNDER 1.5'] },
+      { key: 'UNDER/OVER 2.5', label: 'Under / Over 2.5', suggestions: ['OVER 2.5', 'UNDER 2.5'] },
+      { key: 'UNDER/OVER 3.5', label: 'Under / Over 3.5', suggestions: ['OVER 3.5', 'UNDER 3.5'] },
+      { key: 'UNDER/OVER 4.5', label: 'Under / Over 4.5', suggestions: ['OVER 4.5', 'UNDER 4.5'] },
       { key: 'GOAL/NOGOAL', label: 'Goal / NoGoal', suggestions: ['GOAL', 'NOGOAL'] },
-      { key: '1X2 + U/O 1.5', label: '1X2 + U/O 1.5', suggestions: ['1 + O', '2 + O', '1 + U', '2 + U'] },
-      { key: '1X2 + U/O 2.5', label: '1X2 + U/O 2.5', suggestions: ['1 + O', '2 + O', '1 + U', '2 + U'] },
-      { key: 'U/O 2.5 + GG/NG', label: 'U/O 2.5 + GG/NG', suggestions: ['GOAL + OVER', 'NOGOAL + UNDER', 'GOAL + UNDER'] },
-      { key: 'COMBO: DC + GOAL/NOGOAL', label: 'Combo: DC + Goal/NoGoal', suggestions: ['1X + GOAL', 'X2 + GOAL', '1X + NOGOAL', 'X2 + NOGOAL'] },
-      { key: 'MULTIGOAL 1T + MULTIGOAL 2T', label: 'Multigoal 1T + 2T', suggestions: ['1-4/1-4', '1-3/1-3', '1-2/1-2'] },
-      { key: 'ALTRO', label: 'Altro Mercato', suggestions: ['MULTIGOAL 2-4', 'OVER 1.5', 'CASA OVER 1.5'] }
+      { key: 'MULTIGOAL', label: 'Multigoal Partita', suggestions: ['1-2', '1-3', '1-4', '1-5', '2-4', '2-5', '3-5'] },
+      { key: 'MULTIGOAL 1T', label: 'Multigoal 1° Tempo', suggestions: ['1-2', '1-3', '1-4', '0-1'] },
+      { key: 'MULTIGOAL 2T', label: 'Multigoal 2° Tempo', suggestions: ['1-2', '1-3', '1-4', '0-1'] },
+      { key: 'MULTIGOAL 1T + MULTIGOAL 2T', label: 'Multigoal 1T + Multigoal 2T', suggestions: ['1-4/1-4', '1-3/1-3', '1-2/1-2'] },
+      { key: 'MULTIGOAL CASA / OSPITE', label: 'Multigoal Casa / Ospite', suggestions: ['CASA 1-2', 'CASA 1-3', 'OSPITE 1-2', 'OSPITE 1-3'] },
+      { key: 'U/O CASA / OSPITE', label: 'Under / Over Casa o Ospite', suggestions: ['CASA OVER 0.5', 'CASA OVER 1.5', 'OSPITE OVER 0.5', 'OSPITE OVER 1.5'] },
+      { key: '1X2 + U/O 1.5', label: 'Combo: 1X2 + Under/Over 1.5', suggestions: ['1 + OVER 1.5', '2 + OVER 1.5', '1X + OVER 1.5', 'X2 + OVER 1.5'] },
+      { key: '1X2 + U/O 2.5', label: 'Combo: 1X2 + Under/Over 2.5', suggestions: ['1 + OVER 2.5', '2 + OVER 2.5', '1 + UNDER 2.5', '2 + UNDER 2.5'] },
+      { key: '1X2 + U/O 3.5', label: 'Combo: 1X2 + Under/Over 3.5', suggestions: ['1 + OVER 3.5', '2 + OVER 3.5', '1 + UNDER 3.5', '2 + UNDER 3.5'] },
+      { key: 'U/O 2.5 + GG/NG', label: 'Combo: Under/Over 2.5 + Goal/NoGoal', suggestions: ['GOAL + OVER 2.5', 'GOAL + UNDER 2.5', 'NOGOAL + OVER 2.5', 'NOGOAL + UNDER 2.5'] },
+      { key: 'COMBO: DC + GOAL/NOGOAL', label: 'Combo: Doppia Chance + Goal/NoGoal', suggestions: ['1X + GOAL', 'X2 + GOAL', '1X + NOGOAL', 'X2 + NOGOAL', '12 + GOAL'] },
+      { key: 'COMBO: DC + U/O', label: 'Combo: Doppia Chance + Under/Over', suggestions: ['1X + OVER 1.5', 'X2 + OVER 1.5', '1X + OVER 2.5', 'X2 + OVER 2.5'] },
+      { key: 'COMBO: 1X2 + GG/NG', label: 'Combo: 1X2 + Goal/NoGoal', suggestions: ['1 + GOAL', '2 + GOAL', 'X + GOAL', '1 + NOGOAL', '2 + NOGOAL'] },
+      { key: 'PARZIALE / FINALE', label: 'Parziale / Finale (1°T / Finale)', suggestions: ['1/1', 'X/1', '2/1', '1/X', 'X/X', '2/X', '1/2', 'X/2', '2/2'] },
+      { key: '1X2 1 TEMPO', label: '1X2 Primo Tempo', suggestions: ['1', 'X', '2'] },
+      { key: '1X2 2 TEMPO', label: '1X2 Secondo Tempo', suggestions: ['1', 'X', '2'] },
+      { key: 'DOPPIA CHANCE 1T', label: 'Doppia Chance Primo Tempo', suggestions: ['1X', 'X2', '12'] },
+      { key: 'U/O 1 TEMPO', label: 'Under / Over Primo Tempo', suggestions: ['OVER 0.5', 'UNDER 0.5', 'OVER 1.5', 'UNDER 1.5'] },
+      { key: 'GOAL/NOGOAL 1T', label: 'Goal / NoGoal Primo Tempo', suggestions: ['GOAL', 'NOGOAL'] },
+      { key: 'HANDICAP', label: 'Handicap (es. 0-1, 1-0, 0-2)', suggestions: ['1 (0:1)', '2 (1:0)', '1 (0:2)', '2 (2:0)'] },
+      { key: 'RISULTATO ESATTO', label: 'Risultato Esatto', suggestions: ['1-0', '1-1', '2-0', '2-1', '0-0', '0-1', '0-2', '1-2', '2-2'] },
+      { key: 'MARCATORI', label: 'Marcatore / Combo Marcatore', suggestions: ['Marcatore Sì', '1° Marcatore', 'Marcatore + Squadra Vince'] },
+      { key: 'CORNER / CARTELLINI', label: 'Calci d\'Angolo / Cartellini', suggestions: ['OVER 8.5 CORNER', 'OVER 9.5 CORNER', 'OVER 3.5 CARTELLINI', 'OVER 4.5 CARTELLINI'] },
+      { key: 'MY COMBO', label: 'My Combo / Giocata Personalizzata', suggestions: ['My Combo'] },
+      { key: 'ALTRO', label: 'Altro Mercato / Scrittura Libera', suggestions: ['CASA VINCE A ZERO', 'OSPITE VINCE A ZERO', 'PARI'] }
     ];
 
     // Se pubblichi su GitHub Pages, potrai incollare qui sotto la tua configurazione Firebase e la chiave Gemini
