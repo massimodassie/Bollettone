@@ -965,9 +965,66 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       render();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
 
-    window.selectPlayer = function(pid) {
+    function saveSelectedPlayerPref(pid) {
+      try { localStorage.setItem(PLAYER_STORAGE_KEY, pid); } catch (_) {}
+    }
+
+    function getSavedPlayerPref() {
+      try { return localStorage.getItem(PLAYER_STORAGE_KEY) || ''; } catch (_) { return ''; }
+    }
+
+    window.openWhoAreYouModal = function(allowDismiss = true) {
+      const picks = state.currentWeek.picks || [];
+      const buttonsHtml = state.settings.players.map(p => {
+        const count = picks.filter(pk => pk.playerId === p.id).length;
+        const isCurrent = state.selectedPlayerId === p.id;
+        return `
+          <button type="button" onclick="confirmWhoAreYou('${p.id}')"
+            class="w-full p-3.5 rounded-2xl border text-left flex items-center justify-between transition ${
+              isCurrent
+                ? 'bg-[#78BE20]/15 border-[#78BE20] text-white'
+                : 'bg-[#121212] hover:bg-[#262626] border-white/10 text-gray-200'
+            }">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-full bg-[#78BE20] text-[#121212] font-black text-xs flex items-center justify-center shrink-0">
+                ${escapeHtml(p.name.slice(0, 2).toUpperCase())}
+              </div>
+              <div>
+                <div class="font-bold text-sm text-white">${escapeHtml(p.name)}</div>
+                <div class="text-[11px] text-gray-400">${count}/2 partite inserite questa settimana</div>
+              </div>
+            </div>
+            <span class="text-xs font-extrabold text-[#78BE20]">${isCurrent ? 'Attivo ✓' : 'Scegli →'}</span>
+          </button>
+        `;
+      }).join('');
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base text-white">Chi sta giocando?</h3>
+            <p class="text-xs text-gray-400">Seleziona il tuo nome per assegnare le puntate</p>
+          </div>
+          ${allowDismiss ? `<button type="button" onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>` : ''}
+        </div>
+        <div class="p-4 space-y-2.5 overflow-y-auto">
+          ${buttonsHtml}
+        </div>
+      `);
+    };
+
+    window.confirmWhoAreYou = function(pid) {
       state.selectedPlayerId = pid;
+      saveSelectedPlayerPref(pid);
+      closeModal();
+      render();
+      showToast(`Ora stai giocando come ${getPlayerName(pid)}`, "success");
+    };
+   window.selectPlayer = function(pid) {
+      state.selectedPlayerId = pid;
+      saveSelectedPlayerPref(pid);
       render();
     };
 
