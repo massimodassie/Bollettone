@@ -463,7 +463,77 @@
     // =========================================================================
     // 4. FETCH PARTITE REALI PER CAMPIONATO (ESPN PUBLIC SOCCER API)
     // =========================================================================
-   async function fetchLeagueMatches(leagueCode) {
+   function formatSingleDayESPN(offsetDays = 0) {
+      const d = new Date();
+      d.setDate(d.getDate() + offsetDays);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}${mm}${dd}`;
+    }
+
+    function parseESPNEvent(ev, leagueLabel, nowTs) {
+      if (!ev || !ev.date) return null;
+      const evTs = new Date(ev.date).getTime();
+      if (!isNaN(evTs) && evTs < nowTs) return null;
+
+      const comp = ev.competitions?.[0];
+      const competitors = comp?.competitors || [];
+      const home = competitors.find(c => c.homeAway === 'home')?.team?.displayName || '';
+      const away = competitors.find(c => c.homeAway === 'away')?.team?.displayName || '';
+      const matchName = (home && away) ? `${home} - ${away}` : (ev.name || 'Partita');
+
+      let formattedDate = '';
+      let sortTs = Number.MAX_SAFE_INTEGER;
+      try {
+        const d = new Date(ev.date);
+        sortTs = d.getTime();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        formattedDate = `${dd}/${mm} - ${hh}:${min}`;
+      } catch (_) {}
+
+      return {
+        id: `${leagueLabel}_${ev.id}`,
+        partita: matchName,
+        campionato: leagueLabel,
+        dataOra: formattedDate,
+        sortTs,
+        status: ev.status?.type?.shortDetail || ''
+      };
+    }
+
+    async function fetchSingleLeagueRange(leagueCode, leagueLabel, daysAhead = 14) {
+      const nowTs = Date.now() - (2 * 60 * 60 * 1000);
+      const daySpan = Math.min(Number(daysAhead) || 14, 14);
+      const urls = [`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueCode}/scoreboard`];
+
+      for (let i = 0; i <= daySpan; i++) {
+        urls.push(`https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueCode}/scoreboard?dates=${formatSingleDayESPN(i)}`);
+      }
+
+      const responses = await Promise.all(
+        urls.map(async (u) => {
+          try {
+            const res = await fetch(u);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data.events) ? data.events : [];
+          } catch (_) {
+            return [];
+          }
+        })
+      );
+
+      return responses
+        .flat()
+        .map(ev => parseESPNEvent(ev, leagueLabel, nowTs))
+        .filter(Boolean);
+    }
+
+    async function fetchLeagueMatches(leagueCode) {
       if (leagueCode === 'custom') {
         state.loadingLeague = false;
         render();
@@ -480,23 +550,22 @@
       render();
 
       try {
-        const dateRangeStr = formatDateRangeESPN(state.searchDaysAhead);
         let combined = [];
 
         if (leagueCode === 'all') {
           const fastCodes = [
             'ita.1', 'ita.2', 'eng.1', 'esp.1', 'ger.1', 'fra.1',
-            'uefa.champions', 'uefa.europa', 'uefa.europa.conf', 'fifa.worldq.uefa'
+            'uefa.champions', 'uefa.europa', 'uefa.europa.conf'
           ];
           const targets = LEAGUES.filter(l => fastCodes.includes(l.code));
           const results = await Promise.all(
-            targets.map(l => fetchSingleLeagueRange(l.code, l.label.replace(/^[^\w]+/, '').trim(), dateRangeStr))
+            targets.map(l => fetchSingleLeagueRange(l.code, l.label.replace(/^[^\w]+/, '').trim(), state.searchDaysAhead))
           );
           combined = results.flat();
         } else {
           const found = LEAGUES.find(l => l.code === leagueCode);
           const label = found ? found.label.replace(/^[^\w]+/, '').trim() : leagueCode;
-          combined = await fetchSingleLeagueRange(leagueCode, label, dateRangeStr);
+          combined = await fetchSingleLeagueRange(leagueCode, label, state.searchDaysAhead);
         }
 
         const seen = new Set();
