@@ -1,1 +1,2402 @@
 
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>BOLLETTONE — Scommesse di Gruppo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            sisal: {
+              bg: '#121212',
+              card: '#1E1E1E',
+              cardHover: '#262626',
+              green: '#78BE20',
+              greenHover: '#89d428',
+              greenDim: 'rgba(120, 190, 32, 0.15)',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #121212;
+      color: #f3f4f6;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #121212; }
+    ::-webkit-scrollbar-thumb { background: #333333; border-radius: 9999px; }
+
+    /* Pattern diagonale ispirato alle schedine Sisal */
+    .sisal-pattern {
+      background-color: #181818;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.025) 0px,
+        rgba(255, 255, 255, 0.025) 8px,
+        transparent 8px,
+        transparent 16px
+      );
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .safe-bottom {
+      padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    }
+
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .animate-pulse-soft { animation: pulseSoft 1.8s infinite; }
+  </style>
+</head>
+<body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#78BE20] selection:text-black">
+
+  <!-- Contenitore Principale Mobile-First -->
+  <div id="app" class="max-w-lg mx-auto min-h-screen flex flex-col relative pb-24">
+
+    <!-- Header Sticky -->
+    <header class="sticky top-0 z-30 bg-[#121212]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-[#78BE20] text-[#121212] flex items-center justify-center font-black text-lg shadow-lg shadow-[#78BE20]/25 shrink-0">
+          B
+        </div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
+            <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
+              Sync...
+            </span>
+          </div>
+          <p id="header-week-label" class="text-[11px] text-gray-400 mt-0.5 font-medium truncate">Settimana Corrente</p>
+        </div>
+      </div>
+
+      <button onclick="openSettingsModal()" aria-label="Impostazioni" class="p-2.5 rounded-xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-gray-300 hover:text-white transition active:scale-95 shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Area Contenuto Dinamico -->
+    <main id="main-content" class="flex-1 px-4 pt-4 space-y-5">
+      <!-- Renderizzato dinamicamente da JS -->
+    </main>
+
+    <!-- Barra di Navigazione Fissa in Basso -->
+    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#181818]/95 backdrop-blur-lg border-t border-white/10 safe-bottom">
+      <div class="max-w-lg mx-auto grid grid-cols-4 px-2 pt-1.5">
+        <button onclick="switchTab('gioca')" id="nav-gioca" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
+          <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span class="text-[11px] font-bold tracking-wide">GIOCA</span>
+        </button>
+
+        <button onclick="switchTab('schedine')" id="nav-schedine" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition relative">
+          <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+          </svg>
+          <span class="text-[11px] font-bold tracking-wide">SCHEDINE</span>
+          <span id="badge-schedine" class="hidden absolute top-1 right-4 w-2 h-2 rounded-full bg-[#78BE20]"></span>
+        </button>
+
+        <button onclick="switchTab('cassa')" id="nav-cassa" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
+          <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+          </svg>
+          <span class="text-[11px] font-bold tracking-wide">CASSA</span>
+        </button>
+
+        <button onclick="switchTab('statistiche')" id="nav-statistiche" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
+          <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+          <span class="text-[11px] font-bold tracking-wide">STATS</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Notifiche Toast -->
+  <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none space-y-2"></div>
+
+  <!-- Modale Riutilizzabile -->
+  <div id="modal-root" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div id="modal-box" class="bg-[#1E1E1E] border border-white/10 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <!-- Contenuto Modale Dinamico -->
+    </div>
+  </div>
+
+  <!-- Logica App & Firebase Firestore -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, addDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // =========================================================================
+    // 1. COSTANTI CAMPIONATI, MERCATI SISAL E CONFIGURAZIONE ESTERNA
+    // =========================================================================
+    const LEAGUES = [
+      { code: 'ita.1', label: '🇮🇹 ITA Serie A' },
+      { code: 'ita.2', label: '🇮🇹 ITA Serie B' },
+      { code: 'eng.1', label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 ENG Premier League' },
+      { code: 'esp.1', label: '🇪🇸 ESP La Liga' },
+      { code: 'ger.1', label: '🇩🇪 GER Bundesliga' },
+      { code: 'fra.1', label: '🇫🇷 FRA Ligue 1' },
+      { code: 'uefa.champions', label: '🏆 UEFA Champions League' },
+      { code: 'uefa.europa', label: '🏆 UEFA Europa League' },
+      { code: 'custom', label: '✏️ Altro / Inserimento Manuale' }
+    ];
+
+    const MARKETS = [
+      { key: '1X2 ESITO FINALE', label: '1X2 Esito Finale', suggestions: ['1', 'X', '2'] },
+      { key: 'DOPPIA CHANCE', label: 'Doppia Chance', suggestions: ['1X', 'X2', '12'] },
+      { key: 'UNDER/OVER 2.5', label: 'Under/Over 2.5', suggestions: ['OVER 2.5', 'UNDER 2.5'] },
+      { key: 'GOAL/NOGOAL', label: 'Goal / NoGoal', suggestions: ['GOAL', 'NOGOAL'] },
+      { key: '1X2 + U/O 1.5', label: '1X2 + U/O 1.5', suggestions: ['1 + O', '2 + O', '1 + U', '2 + U'] },
+      { key: '1X2 + U/O 2.5', label: '1X2 + U/O 2.5', suggestions: ['1 + O', '2 + O', '1 + U', '2 + U'] },
+      { key: 'U/O 2.5 + GG/NG', label: 'U/O 2.5 + GG/NG', suggestions: ['GOAL + OVER', 'NOGOAL + UNDER', 'GOAL + UNDER'] },
+      { key: 'COMBO: DC + GOAL/NOGOAL', label: 'Combo: DC + Goal/NoGoal', suggestions: ['1X + GOAL', 'X2 + GOAL', '1X + NOGOAL', 'X2 + NOGOAL'] },
+      { key: 'MULTIGOAL 1T + MULTIGOAL 2T', label: 'Multigoal 1T + 2T', suggestions: ['1-4/1-4', '1-3/1-3', '1-2/1-2'] },
+      { key: 'ALTRO', label: 'Altro Mercato', suggestions: ['MULTIGOAL 2-4', 'OVER 1.5', 'CASA OVER 1.5'] }
+    ];
+
+    // Se pubblichi su GitHub Pages, potrai incollare qui sotto la tua configurazione Firebase e la chiave Gemini
+    const GITHUB_FIREBASE_CONFIG = null; // Esempio: { apiKey: "...", authDomain: "...", projectId: "...", ... }
+    const GITHUB_GEMINI_API_KEY = "";    // Lascia vuoto nell'anteprima Canvas (fornita in automatico)
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'bollettone-sisal-v2';
+
+    let activeFirebaseConfig = null;
+    try {
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        activeFirebaseConfig = JSON.parse(__firebase_config);
+      } else if (GITHUB_FIREBASE_CONFIG) {
+        activeFirebaseConfig = GITHUB_FIREBASE_CONFIG;
+      }
+    } catch (e) {
+      console.error("Errore parsing Firebase config:", e);
+    }
+
+    let runtimeGeminiKey = GITHUB_GEMINI_API_KEY;
+
+    // =========================================================================
+    // 2. STATO APPLICAZIONE
+    // =========================================================================
+    const state = {
+      activeTab: 'gioca',
+      user: null,
+      cloudConnected: false,
+      loadingAI: false,
+      aiPreviewMatches: null, // Risultati estratti dallo screenshot pronti per conferma 1-tap
+      selectedPlayerId: 'p1',
+      expandedHistoryIds: {},
+
+      // Stato menu campionati & partite ESPN
+      selectedLeague: 'ita.1',
+      leagueMatchesCache: {},
+      loadingLeague: false,
+      matchSearchQuery: '',
+
+      // Form inserimento giocata
+      form: {
+        campionato: 'ITA Serie A',
+        partita: '',
+        mercato: '1X2 ESITO FINALE',
+        esito: '',
+        quota: '',
+        dataOra: ''
+      },
+
+      // Dati condivisi in tempo reale su Firestore
+      settings: {
+        players: [
+          { id: 'p1', name: 'Massimo' },
+          { id: 'p2', name: 'Luca' },
+          { id: 'p3', name: 'Marco' },
+          { id: 'p4', name: 'Andrea' },
+          { id: 'p5', name: 'Matteo' }
+        ],
+        bonusMultipla: true // +3% su 5 eventi, +6% su 6 eventi
+      },
+      currentWeek: {
+        weekLabel: getDefaultWeekLabel(),
+        picks: [],
+        checkedA: {},
+        checkedB: {}
+      },
+      history: [],
+      transactions: []
+    };
+
+    let db = null;
+    let auth = null;
+    let unsubscribers = [];
+
+    function getDefaultWeekLabel() {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      return `Bollettone del ${dd}/${mm}/${yyyy}`;
+    }
+
+    // =========================================================================
+    // 3. FIREBASE FIRESTORE (SYNC REAL-TIME)
+    // =========================================================================
+    async function initFirebase(customConfig = null) {
+      const cfg = customConfig || activeFirebaseConfig;
+      if (!cfg) {
+        updateSyncBadge('offline', 'Locale');
+        render();
+        return;
+      }
+
+      try {
+        // Pulisce eventuali listener precedenti
+        unsubscribers.forEach(fn => { try { fn(); } catch (_) {} });
+        unsubscribers = [];
+
+        const app = initializeApp(cfg, customConfig ? 'custom-' + Date.now() : undefined);
+        auth = getAuth(app);
+        db = getFirestore(app);
+
+        // REGOLA 3: Autenticazione PRIMA di ogni operazione Firestore
+        if (!customConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        onAuthStateChanged(auth, (user) => {
+          state.user = user;
+          if (user) {
+            state.cloudConnected = true;
+            updateSyncBadge('online', 'Live Sync');
+            subscribeToFirestore();
+          }
+        });
+      } catch (err) {
+        console.error("Errore connessione Firebase:", err);
+        updateSyncBadge('error', 'Offline');
+        showToast("Connessione cloud non riuscita. Modalità locale attiva.", "warning");
+        render();
+      }
+    }
+
+    function subscribeToFirestore() {
+      if (!db || !state.user) return;
+
+      // REGOLA 1: Percorsi rigorosi /artifacts/{appId}/public/data/{collectionName}
+      const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config');
+      const weekRef = doc(db, 'artifacts', appId, 'public', 'data', 'currentWeek', 'active');
+      const historyCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+      const txCol = collection(db, 'artifacts', appId, 'public', 'data', 'transactions');
+
+      unsubscribers.push(
+        onSnapshot(settingsRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data.players) && data.players.length > 0) {
+              state.settings.players = data.players;
+            }
+            if (typeof data.bonusMultipla === 'boolean') {
+              state.settings.bonusMultipla = data.bonusMultipla;
+            }
+            if (!state.settings.players.some(p => p.id === state.selectedPlayerId)) {
+              state.selectedPlayerId = state.settings.players[0]?.id || '';
+            }
+            render();
+          } else {
+            saveSettingsToCloud();
+          }
+        }, (err) => console.error("Errore listener settings:", err))
+      );
+
+      unsubscribers.push(
+        onSnapshot(weekRef, (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            state.currentWeek = {
+              weekLabel: data.weekLabel || getDefaultWeekLabel(),
+              picks: Array.isArray(data.picks) ? data.picks : [],
+              checkedA: data.checkedA || {},
+              checkedB: data.checkedB || {}
+            };
+            render();
+          } else {
+            saveCurrentWeekToCloud();
+          }
+        }, (err) => console.error("Errore listener currentWeek:", err))
+      );
+
+      // REGOLA 2: Nessun orderBy/limit su Firestore, ordinamento in memoria JS
+      unsubscribers.push(
+        onSnapshot(historyCol, (snap) => {
+          const list = [];
+          snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+          list.sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+          state.history = list;
+          render();
+        }, (err) => console.error("Errore listener history:", err))
+      );
+
+      unsubscribers.push(
+        onSnapshot(txCol, (snap) => {
+          const list = [];
+          snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+          list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          state.transactions = list;
+          render();
+        }, (err) => console.error("Errore listener transactions:", err))
+      );
+    }
+
+    async function saveSettingsToCloud() {
+      if (!db || !state.user) return;
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), state.settings);
+      } catch (err) {
+        console.error("Errore salvataggio settings:", err);
+      }
+    }
+
+    async function saveCurrentWeekToCloud() {
+      if (!db || !state.user) return;
+      try {
+        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'currentWeek', 'active'), state.currentWeek);
+      } catch (err) {
+        console.error("Errore salvataggio settimana:", err);
+      }
+    }
+
+    async function addTransactionToCloud(tx) {
+      if (!db || !state.user) {
+        state.transactions.unshift({ id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5), ...tx });
+        render();
+        return;
+      }
+      try {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), tx);
+      } catch (err) {
+        console.error("Errore salvataggio transazione:", err);
+        showToast("Errore salvataggio movimento in cassa.", "error");
+      }
+    }
+
+    async function deleteTransactionFromCloud(txId) {
+      if (!db || !state.user) {
+        state.transactions = state.transactions.filter(t => t.id !== txId);
+        render();
+        return;
+      }
+      try {
+        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'transactions', txId));
+      } catch (err) {
+        console.error("Errore eliminazione transazione:", err);
+        showToast("Errore durante l'eliminazione del movimento.", "error");
+      }
+    }
+
+    async function addHistoryToCloud(entry) {
+      if (!db || !state.user) {
+        state.history.unshift({ id: 'hist_' + Date.now(), ...entry });
+        render();
+        return;
+      }
+      try {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), entry);
+      } catch (err) {
+        console.error("Errore salvataggio storico:", err);
+        showToast("Errore durante l'archiviazione.", "error");
+      }
+    }
+
+    function updateSyncBadge(status, label) {
+      const badge = document.getElementById('sync-badge');
+      if (!badge) return;
+      let dot = 'bg-amber-400 animate-pulse-soft';
+      let txt = 'text-gray-400';
+      if (status === 'online') { dot = 'bg-[#78BE20]'; txt = 'text-[#78BE20]'; }
+      else if (status === 'error') { dot = 'bg-red-500'; txt = 'text-red-400'; }
+      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span class="${txt}">${label}</span>`;
+    }
+
+    // =========================================================================
+    // 4. FETCH PARTITE REALI PER CAMPIONATO (ESPN PUBLIC SOCCER API)
+    // =========================================================================
+    async function fetchLeagueMatches(leagueCode) {
+      if (leagueCode === 'custom') {
+        state.loadingLeague = false;
+        render();
+        return;
+      }
+      if (state.leagueMatchesCache[leagueCode]) {
+        render();
+        return;
+      }
+
+      state.loadingLeague = true;
+      render();
+
+      try {
+        const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueCode}/scoreboard`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const events = Array.isArray(data.events) ? data.events : [];
+
+        const parsed = events.map(ev => {
+          const comp = ev.competitions?.[0];
+          const competitors = comp?.competitors || [];
+          const home = competitors.find(c => c.homeAway === 'home')?.team?.displayName || '';
+          const away = competitors.find(c => c.homeAway === 'away')?.team?.displayName || '';
+          const matchName = (home && away) ? `${home} - ${away}` : (ev.name || 'Partita');
+
+          let formattedDate = '';
+          if (ev.date) {
+            try {
+              const d = new Date(ev.date);
+              const dd = String(d.getDate()).padStart(2, '0');
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const min = String(d.getMinutes()).padStart(2, '0');
+              formattedDate = `${dd}/${mm} - ${hh}:${min}`;
+            } catch (_) {}
+          }
+
+          return {
+            id: ev.id,
+            partita: matchName,
+            dataOra: formattedDate,
+            status: ev.status?.type?.shortDetail || ''
+          };
+        });
+
+        state.leagueMatchesCache[leagueCode] = parsed;
+      } catch (err) {
+        console.warn("Impossibile caricare partite ESPN per", leagueCode, err);
+        state.leagueMatchesCache[leagueCode] = [];
+      } finally {
+        state.loadingLeague = false;
+        render();
+      }
+    }
+
+    // =========================================================================
+    // 5. GEMINI AI — LETTURA AUTOMATICA SCREENSHOT SISAL
+    // =========================================================================
+    async function analyzeSisalScreenshot(file) {
+      if (!file) return;
+      state.loadingAI = true;
+      state.aiPreviewMatches = null;
+      render();
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        const prompt = `Sei un assistente esperto dell'app Sisal Scommesse.
+Analizza questo screenshot e estrai tutte le partite di calcio visibili con:
+- partita: "Squadra Casa - Squadra Ospite"
+- campionato: nome del campionato se visibile (es. "ITA Serie A", "ENG Premier League", altrimenti "")
+- mercato: tipo di scommessa (es. "1X2 ESITO FINALE", "DOPPIA CHANCE", "U/O 2.5 + GG/NG", "1X2 + U/O 1.5", "COMBO: DC + GOAL/NOGOAL", "MULTIGOAL 1T + MULTIGOAL 2T")
+- esito: la scelta specifica (es. "2", "1X", "GOAL + OVER", "1 + O", "1-4/1-4")
+- quota: numero decimale con punto (es. 1.75)
+- dataOra: data e ora se presenti (es. "08/11 - 15:00")
+Restituisci esclusivamente un JSON valido conforme allo schema.`;
+
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                matches: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      partita: { type: "STRING" },
+                      campionato: { type: "STRING" },
+                      mercato: { type: "STRING" },
+                      esito: { type: "STRING" },
+                      quota: { type: "NUMBER" },
+                      dataOra: { type: "STRING" }
+                    },
+                    required: ["partita", "mercato", "esito", "quota"]
+                  }
+                }
+              },
+              required: ["matches"]
+            }
+          }
+        };
+
+        const apiKey = runtimeGeminiKey || "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const result = await fetchWithBackoff(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Risposta vuota dall'AI");
+
+        const parsed = JSON.parse(text);
+        const matches = Array.isArray(parsed.matches) ? parsed.matches : [];
+
+        if (matches.length === 0) {
+          showToast("Nessuna partita riconosciuta. Prova uno screenshot più nitido.", "warning");
+        } else {
+          state.aiPreviewMatches = matches;
+          showToast(`Trovate ${matches.length} ${matches.length === 1 ? 'partita' : 'partite'}! Conferma con un tocco.`, "success");
+        }
+      } catch (err) {
+        console.error("Errore lettura screenshot AI:", err);
+        showToast("Impossibile analizzare lo screenshot ora. Verifica la connessione o inserisci a mano.", "error");
+      } finally {
+        state.loadingAI = false;
+        render();
+      }
+    }
+
+    async function fetchWithBackoff(url, options, maxRetries = 4) {
+      let delay = 1000;
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          const res = await fetch(url, options);
+          if (res.ok) return await res.json();
+          if (res.status === 429 || res.status >= 500) {
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2;
+            continue;
+          }
+          throw new Error(`HTTP ${res.status}`);
+        } catch (e) {
+          if (i === maxRetries - 1) throw e;
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
+        }
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const s = String(reader.result || '');
+          resolve(s.includes(',') ? s.split(',')[1] : s);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // =========================================================================
+    // 6. MOTORE DI CALCOLO SCHEDINE (A: SECCA 5€ | B: SISTEMA 6 PARTITE 5€)
+    // =========================================================================
+    function computeTickets() {
+      const players = state.settings.players;
+      const picks = state.currentWeek.picks || [];
+      const bonusActive = state.settings.bonusMultipla;
+
+      // Raggruppa giocate per giocatore
+      const byPlayer = {};
+      players.forEach(p => { byPlayer[p.id] = []; });
+      picks.forEach(pk => {
+        if (!byPlayer[pk.playerId]) byPlayer[pk.playerId] = [];
+        byPlayer[pk.playerId].push(pk);
+      });
+
+      const ticketA = [];
+      const ticketBBase = [];
+      let playersComplete = 0;
+
+      players.forEach(p => {
+        const list = (byPlayer[p.id] || []).slice().sort((a, b) => a.quota - b.quota);
+        if (list.length >= 2) playersComplete++;
+        if (list.length >= 1) {
+          // Schedina A: la quota più bassa di ogni giocatore
+          ticketA.push({ ...list[0], playerName: p.name });
+        }
+        if (list.length >= 2) {
+          // Schedina B: la giocata rimanente (quota più alta) di ogni giocatore
+          ticketBBase.push({ ...list[1], playerName: p.name, isJolly: false });
+        }
+      });
+
+      // Aggiunge alla Schedina B la partita della Schedina A con quota più bassa
+      let jollyFromA = null;
+      const ticketB = [...ticketBBase];
+      if (ticketA.length > 0) {
+        const sortedA = [...ticketA].sort((a, b) => a.quota - b.quota);
+        jollyFromA = { ...sortedA[0], isJolly: true };
+        ticketB.push(jollyFromA);
+      }
+
+      // --- SCHEDINA A (Secca 5,00 €, Bonus Multipla +3% se >= 5 eventi) ---
+      const stakeA = 5.00;
+      const rawProdA = ticketA.length > 0 ? ticketA.reduce((acc, x) => acc * Number(x.quota), 1) : 0;
+      const applyBonusA = bonusActive && ticketA.length >= 5;
+      const quotaTotA = rawProdA * (applyBonusA ? 1.03 : 1.0);
+      const potentialWinA = quotaTotA * stakeA;
+
+      const aLost = ticketA.filter(x => x.status === 'lost').length;
+      const aWon = ticketA.filter(x => x.status === 'won').length;
+      let statusA = 'pending';
+      let actualWinA = 0;
+      if (ticketA.length > 0) {
+        if (aLost > 0) {
+          statusA = 'lost';
+          actualWinA = 0;
+        } else if (aWon === ticketA.length) {
+          statusA = 'won';
+          actualWinA = Number(potentialWinA.toFixed(2));
+        }
+      }
+
+      // --- SCHEDINA B (Sistema 6 partite, 1 errore - Puntata 5,00 €) ---
+      // Sviluppo esatto Sisal:
+      // 6 su 6: 1 colonna × 0,50 € = 0,50 € (Bonus +6% opzionale)
+      // 5 su 6: 6 colonne × 0,75 € = 4,50 € (Bonus +3% opzionale)
+      const stakeB = 5.00;
+      const stake6 = 0.50;
+      const stake5 = 0.75;
+      const mult6 = bonusActive ? 1.06 : 1.0;
+      const mult5 = bonusActive ? 1.03 : 1.0;
+
+      let win6Col = 0;
+      let minWinB = 0;
+      let maxWinB = 0;
+      let cinquineDetails = [];
+
+      if (ticketB.length === 6) {
+        const prod6 = ticketB.reduce((acc, x) => acc * Number(x.quota), 1);
+        win6Col = prod6 * mult6 * stake6;
+
+        for (let skipIdx = 0; skipIdx < 6; skipIdx++) {
+          const combo = ticketB.filter((_, idx) => idx !== skipIdx);
+          const comboProd = combo.reduce((acc, x) => acc * Number(x.quota), 1);
+          const comboWin = comboProd * mult5 * stake5;
+          cinquineDetails.push({
+            skipped: ticketB[skipIdx],
+            quota: comboProd * mult5,
+            win: comboWin,
+            allWon: combo.every(c => c.status === 'won')
+          });
+        }
+
+        minWinB = Math.min(...cinquineDetails.map(c => c.win));
+        const sumCinquine = cinquineDetails.reduce((acc, c) => acc + c.win, 0);
+        maxWinB = win6Col + sumCinquine;
+      } else if (ticketB.length > 0) {
+        const prodPartial = ticketB.reduce((acc, x) => acc * Number(x.quota), 1);
+        maxWinB = prodPartial * stakeB;
+      }
+
+      const bLost = ticketB.filter(x => x.status === 'lost').length;
+      const bWon = ticketB.filter(x => x.status === 'won').length;
+      let statusB = 'pending';
+      let actualWinB = 0;
+      let hitsLabelB = `${bWon}/${ticketB.length} prese`;
+
+      if (ticketB.length === 6) {
+        if (bLost >= 2) {
+          statusB = 'lost';
+          actualWinB = 0;
+          hitsLabelB = `${bLost} errori — PERDENTE`;
+        } else if (bWon === 6) {
+          statusB = 'won';
+          actualWinB = Number(maxWinB.toFixed(2));
+          hitsLabelB = '6 su 6! (1 sestina + 6 cinquine)';
+        } else if (bWon === 5 && bLost === 1) {
+          statusB = 'won';
+          const hit = cinquineDetails.find(c => c.allWon);
+          actualWinB = hit ? Number(hit.win.toFixed(2)) : 0;
+          hitsLabelB = '5 su 6! (1 cinquina centrata)';
+        }
+      }
+
+      return {
+        playersCount: players.length,
+        playersComplete,
+        ticketA: {
+          picks: ticketA,
+          stake: stakeA,
+          applyBonus: applyBonusA,
+          quotaTot: quotaTotA,
+          potentialWin: potentialWinA,
+          status: statusA,
+          actualWin: actualWinA,
+          wonCount: aWon,
+          lostCount: aLost
+        },
+        ticketB: {
+          picks: ticketB,
+          jolly: jollyFromA,
+          stake: stakeB,
+          stake6,
+          stake5,
+          bonusActive,
+          win6Col,
+          minWin: minWinB,
+          maxWin: maxWinB,
+          status: statusB,
+          actualWin: actualWinB,
+          wonCount: bWon,
+          lostCount: bLost,
+          hitsLabel: hitsLabelB
+        }
+      };
+    }
+
+    // =========================================================================
+    // 7. AZIONI UTENTE & INTERAZIONI
+    // =========================================================================
+    window.switchTab = function(tab) {
+      state.activeTab = tab;
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.selectPlayer = function(pid) {
+      state.selectedPlayerId = pid;
+      render();
+    };
+
+    window.onLeagueChange = function(leagueCode) {
+      state.selectedLeague = leagueCode;
+      state.matchSearchQuery = '';
+      const found = LEAGUES.find(l => l.code === leagueCode);
+      state.form.campionato = found ? found.label.replace(/^[^\w]+/, '').trim() : '';
+      fetchLeagueMatches(leagueCode);
+    };
+
+    window.onMatchSearchInput = function(val) {
+      state.matchSearchQuery = val;
+      renderMatchDropdownOnly();
+    };
+
+    window.selectMatchFromESPN = function(partita, dataOra) {
+      state.form.partita = partita;
+      if (dataOra) state.form.dataOra = dataOra;
+      render();
+      showToast(`Partita selezionata: ${partita}`, "info");
+    };
+
+    window.onMarketChange = function(marketKey) {
+      state.form.mercato = marketKey;
+      state.form.esito = '';
+      render();
+    };
+
+    window.selectOutcomeSuggestion = function(esito) {
+      state.form.esito = esito;
+      render();
+    };
+
+    window.updateFormField = function(field, value) {
+      state.form[field] = value;
+      if (field === 'quota') {
+        const warnEl = document.getElementById('quota-warning');
+        const q = parseFloat(String(value).replace(',', '.'));
+        if (warnEl) {
+          if (!isNaN(q) && q > 0 && q < 1.40) warnEl.classList.remove('hidden');
+          else warnEl.classList.add('hidden');
+        }
+      }
+    };
+
+    window.triggerScreenshotUpload = function() {
+      const inp = document.getElementById('screenshot-file-input');
+      if (inp) inp.click();
+    };
+
+    window.handleScreenshotChange = function(e) {
+      const file = e.target.files?.[0];
+      if (file) analyzeSisalScreenshot(file);
+      e.target.value = '';
+    };
+
+    window.dismissAIPreview = function() {
+      state.aiPreviewMatches = null;
+      render();
+    };
+
+    window.confirmAIPick = async function(index) {
+      const m = state.aiPreviewMatches?.[index];
+      if (!m) return;
+      const quota = parseFloat(String(m.quota).replace(',', '.'));
+      if (isNaN(quota) || quota < 1.40) {
+        showToast(`Quota ${m.quota} inferiore al minimo consentito (1.40)!`, "error");
+        return;
+      }
+      const mercatoFull = m.esito ? `${m.mercato}: ${m.esito}` : m.mercato;
+      const added = await saveNewPick({
+        partita: m.partita,
+        campionato: m.campionato || '',
+        mercato: mercatoFull,
+        quota,
+        dataOra: m.dataOra || ''
+      });
+      if (added) {
+        state.aiPreviewMatches.splice(index, 1);
+        if (state.aiPreviewMatches.length === 0) state.aiPreviewMatches = null;
+        render();
+      }
+    };
+
+    window.loadAIPickIntoForm = function(index) {
+      const m = state.aiPreviewMatches?.[index];
+      if (!m) return;
+      state.form.partita = m.partita || '';
+      state.form.campionato = m.campionato || '';
+      state.form.mercato = MARKETS.some(x => x.key === m.mercato) ? m.mercato : 'ALTRO';
+      state.form.esito = m.esito ? (state.form.mercato === 'ALTRO' ? `${m.mercato}: ${m.esito}` : m.esito) : (m.mercato || '');
+      state.form.quota = m.quota ? Number(m.quota).toFixed(2) : '';
+      state.form.dataOra = m.dataOra || '';
+      state.aiPreviewMatches = null;
+      render();
+      showToast("Dati caricati nel form. Verifica e salva!", "info");
+    };
+
+    window.submitPickForm = async function(e) {
+      e.preventDefault();
+      const partita = state.form.partita.trim();
+      const esito = state.form.esito.trim();
+      const mercato = state.form.mercato === 'ALTRO' ? esito : `${state.form.mercato}: ${esito}`;
+      const quota = parseFloat(String(state.form.quota).replace(',', '.'));
+      const dataOra = state.form.dataOra.trim();
+
+      if (!partita || !esito) {
+        showToast("Inserisci la Partita e l'Esito della scommessa.", "error");
+        return;
+      }
+      if (isNaN(quota) || quota < 1.40) {
+        showToast("Bloccato! La quota minima del Bollettone è 1.40.", "error");
+        return;
+      }
+
+      const ok = await saveNewPick({
+        partita,
+        campionato: state.form.campionato || '',
+        mercato,
+        quota,
+        dataOra
+      });
+
+      if (ok) {
+        state.form.partita = '';
+        state.form.esito = '';
+        state.form.quota = '';
+        state.form.dataOra = '';
+        render();
+      }
+    };
+
+    async function saveNewPick({ partita, campionato, mercato, quota, dataOra }) {
+      const playerId = state.selectedPlayerId || state.settings.players[0]?.id;
+      if (!playerId) {
+        showToast("Seleziona un giocatore.", "error");
+        return false;
+      }
+
+      const playerPicks = state.currentWeek.picks.filter(p => p.playerId === playerId);
+      if (playerPicks.length >= 2) {
+        showToast(`${getPlayerName(playerId)} ha già inserito 2 partite. Rimuovine una prima.`, "warning");
+        return false;
+      }
+
+      const normNew = normalizeMatch(partita);
+      const duplicateBy = state.currentWeek.picks.find(p => normalizeMatch(p.partita) === normNew);
+
+      state.currentWeek.picks.push({
+        id: 'pk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        playerId,
+        campionato,
+        partita,
+        mercato,
+        quota: Number(quota.toFixed(2)),
+        dataOra,
+        status: 'pending',
+        createdAt: Date.now()
+      });
+
+      await saveCurrentWeekToCloud();
+      render();
+
+      if (duplicateBy) {
+        showToast(`Salvata, ma ATTENZIONE: "${partita}" è già stata scelta da ${getPlayerName(duplicateBy.playerId)}!`, "warning");
+      } else {
+        showToast("Giocata aggiunta al Bollettone!", "success");
+      }
+      return true;
+    }
+
+    window.deletePick = async function(pickId) {
+      state.currentWeek.picks = state.currentWeek.picks.filter(p => p.id !== pickId);
+      delete state.currentWeek.checkedA[pickId];
+      delete state.currentWeek.checkedB[pickId];
+      await saveCurrentWeekToCloud();
+      render();
+      showToast("Giocata eliminata.", "info");
+    };
+
+    window.setPickStatus = async function(pickId, newStatus) {
+      const pk = state.currentWeek.picks.find(p => p.id === pickId);
+      if (!pk) return;
+      pk.status = pk.status === newStatus ? 'pending' : newStatus;
+      await saveCurrentWeekToCloud();
+      render();
+    };
+
+    window.toggleCheckSisal = async function(ticketType, pickId) {
+      const key = ticketType === 'A' ? 'checkedA' : 'checkedB';
+      if (!state.currentWeek[key]) state.currentWeek[key] = {};
+      state.currentWeek[key][pickId] = !state.currentWeek[key][pickId];
+      await saveCurrentWeekToCloud();
+      render();
+    };
+
+    window.toggleBonusMultipla = async function() {
+      state.settings.bonusMultipla = !state.settings.bonusMultipla;
+      await saveSettingsToCloud();
+      render();
+    };
+
+    window.toggleHistoryExpand = function(id) {
+      state.expandedHistoryIds[id] = !state.expandedHistoryIds[id];
+      render();
+    };
+
+    window.copyWhatsAppSummary = function() {
+      const calc = computeTickets();
+      const lines = [];
+      lines.push(`⚽ *BOLLETTONE — ${state.currentWeek.weekLabel}*`);
+      lines.push('');
+      lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
+      lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
+      calc.ticketA.picks.forEach((p, i) => {
+        lines.push(`${i + 1}. *${p.partita}* — ${p.mercato} @ *${p.quota.toFixed(2)}* (${p.playerName})`);
+      });
+      lines.push('');
+      lines.push(`🔥 *SCHEDINA B (Sistema 6 partite, 1 errore — 5,00 €)*`);
+      lines.push(`Min (5/6): *${formatEuro(calc.ticketB.minWin)}* | Max (6/6): *${formatEuro(calc.ticketB.maxWin)}*`);
+      calc.ticketB.picks.forEach((p, i) => {
+        const tag = p.isJolly ? ' ⭐ [Da Schedina A]' : ` (${p.playerName})`;
+        lines.push(`${i + 1}. *${p.partita}* — ${p.mercato} @ *${p.quota.toFixed(2)}*${tag}`);
+      });
+      lines.push('');
+      lines.push(`🍀 Forza ragazzi!`);
+
+      copyTextToClipboard(lines.join('\n'));
+      showToast("Riepilogo copiato! Incollalo su WhatsApp.", "success");
+    };
+
+    function copyTextToClipboard(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) { console.error(e); }
+      document.body.removeChild(ta);
+    }
+
+    // =========================================================================
+    // 8. MODALI (CHIUSURA SETTIMANA, CASSA, ELIMINA MOVIMENTO, IMPOSTAZIONI)
+    // =========================================================================
+    window.closeModal = function() {
+      document.getElementById('modal-root').classList.add('hidden');
+    };
+
+    function openModal(html) {
+      document.getElementById('modal-box').innerHTML = html;
+      document.getElementById('modal-root').classList.remove('hidden');
+    }
+
+    // Modal: Chiudi Settimana & Verifica Cassa
+    window.openArchiveModal = function() {
+      const calc = computeTickets();
+      const suggestedWin = Number((calc.ticketA.actualWin + calc.ticketB.actualWin).toFixed(2));
+      const pendingCount = state.currentWeek.picks.filter(p => p.status === 'pending').length;
+
+      const labelA = calc.ticketA.status === 'won'
+        ? `<span class="text-[#78BE20]">VINCENTE (${formatEuro(calc.ticketA.actualWin)})</span>`
+        : calc.ticketA.status === 'lost'
+          ? `<span class="text-red-400">PERDENTE (0,00 €)</span>`
+          : `<span class="text-amber-400">In attesa</span>`;
+
+      const labelB = calc.ticketB.status === 'won'
+        ? `<span class="text-[#78BE20]">VINCENTE (${formatEuro(calc.ticketB.actualWin)})</span>`
+        : calc.ticketB.status === 'lost'
+          ? `<span class="text-red-400">PERDENTE (0,00 €)</span>`
+          : `<span class="text-amber-400">In attesa</span>`;
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base text-white">Chiudi Settimana & Verifica Cassa</h3>
+            <p class="text-xs text-gray-400">${escapeHtml(state.currentWeek.weekLabel)}</p>
+          </div>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <div class="p-4 space-y-4 overflow-y-auto">
+          ${pendingCount > 0 ? `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+              <strong>Attenzione:</strong> ci sono ancora <strong>${pendingCount} partite</strong> in attesa di esito. Segnale tutte nella scheda Schedine per un calcolo esatto.
+            </div>
+          ` : ''}
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3 rounded-xl bg-[#121212] border border-white/10">
+              <div class="text-[11px] text-gray-400">Schedina A (5 €)</div>
+              <div class="font-black text-xs mt-1">${labelA}</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#121212] border border-white/10">
+              <div class="text-[11px] text-gray-400">Schedina B (5 €)</div>
+              <div class="font-black text-xs mt-1">${labelB}</div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-200 mb-1.5">Conferma importo vinto su Sisal (€)</label>
+            <input id="archive-win-input" type="number" step="0.01" min="0" value="${suggestedWin.toFixed(2)}"
+              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-lg focus:outline-none focus:border-[#78BE20]" />
+            <p class="text-[11px] text-gray-500 mt-1">Se vincente, questa somma verrà caricata in automatico nella Cassa Comune.</p>
+          </div>
+
+          <label class="flex items-center gap-3 p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
+            <input id="archive-deduct-stake" type="checkbox" checked class="w-5 h-5 accent-[#78BE20] rounded shrink-0" />
+            <span class="text-xs text-gray-300">Scala <strong>-10,00 €</strong> dalla Cassa Comune per il costo delle due schedine</span>
+          </label>
+
+          <button onclick="confirmArchiveWeek()" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
+            Conferma Vincita, Aggiorna Cassa & Archivia
+          </button>
+        </div>
+      `);
+    };
+
+    window.confirmArchiveWeek = async function() {
+      const calc = computeTickets();
+      const winVal = parseFloat(document.getElementById('archive-win-input')?.value || '0');
+      const totalWin = isNaN(winVal) ? 0 : Math.max(0, Number(winVal.toFixed(2)));
+      const deductStake = document.getElementById('archive-deduct-stake')?.checked ?? true;
+      const now = Date.now();
+      const dateStr = new Date().toLocaleDateString('it-IT');
+
+      const historyEntry = {
+        weekLabel: state.currentWeek.weekLabel,
+        archivedAt: now,
+        dateStr,
+        picks: state.currentWeek.picks,
+        schedinaA: {
+          quotaTot: Number(calc.ticketA.quotaTot.toFixed(2)),
+          potentialWin: Number(calc.ticketA.potentialWin.toFixed(2)),
+          actualWin: calc.ticketA.actualWin,
+          won: calc.ticketA.status === 'won'
+        },
+        schedinaB: {
+          minWin: Number(calc.ticketB.minWin.toFixed(2)),
+          maxWin: Number(calc.ticketB.maxWin.toFixed(2)),
+          actualWin: calc.ticketB.actualWin,
+          hitsLabel: calc.ticketB.hitsLabel,
+          won: calc.ticketB.status === 'won'
+        },
+        totalStake: 10.00,
+        totalWin
+      };
+
+      await addHistoryToCloud(historyEntry);
+
+      if (deductStake) {
+        await addTransactionToCloud({
+          type: 'bet',
+          amount: -10.00,
+          note: `Costo Schedine (${state.currentWeek.weekLabel})`,
+          date: dateStr,
+          createdAt: now
+        });
+      }
+      if (totalWin > 0) {
+        await addTransactionToCloud({
+          type: 'win',
+          amount: totalWin,
+          note: `Vincita Confermata (${state.currentWeek.weekLabel})`,
+          date: dateStr,
+          createdAt: now + 1
+        });
+      }
+
+      state.currentWeek = {
+        weekLabel: getDefaultWeekLabel(),
+        picks: [],
+        checkedA: {},
+        checkedB: {}
+      };
+      await saveCurrentWeekToCloud();
+      closeModal();
+      render();
+      showToast("Settimana archiviata e Cassa Comune aggiornata!", "success");
+    };
+
+    // Modal: Movimento Manuale Cassa (Versamento o Prelievo/Rettifica)
+    window.openCashModal = function(mode = 'deposit', preselectedPlayerId = '') {
+      const isDep = mode === 'deposit';
+      const playerOptions = state.settings.players.map(p =>
+        `<option value="${p.id}" ${p.id === preselectedPlayerId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`
+      ).join('');
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="font-bold text-base text-white">${isDep ? 'Carica Versamento in Cassa' : 'Prelievo / Rettifica Cassa'}</h3>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <form onsubmit="submitCashMovement(event, '${mode}')" class="p-4 space-y-4">
+          ${isDep ? `
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Giocatore</label>
+              <select id="cash-player" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#78BE20]">
+                ${playerOptions}
+              </select>
+            </div>
+          ` : `
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Tipo Rettifica</label>
+              <select id="cash-adjust-sign" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#78BE20]">
+                <option value="-1">Prelievo / Uscita (- €)</option>
+                <option value="1">Rettifica Positiva / Extra (+ €)</option>
+              </select>
+            </div>
+          `}
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Importo (€)</label>
+              <input id="cash-amount" type="number" step="0.50" min="0.50" value="${isDep ? '10.00' : '5.00'}" required
+                class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white font-bold text-base focus:outline-none focus:border-[#78BE20]" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Data</label>
+              <input id="cash-date" type="date" value="${todayIso}"
+                class="w-full px-3 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#78BE20]" />
+            </div>
+          </div>
+
+          ${isDep ? `
+            <div class="flex gap-2">
+              ${[5, 10, 20, 50].map(v => `
+                <button type="button" onclick="document.getElementById('cash-amount').value='${v}.00'"
+                  class="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300">+${v} €</button>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1.5">Nota (opzionale)</label>
+            <input id="cash-note" type="text" placeholder="${isDep ? 'Es. Quota Novembre' : 'Es. Divisione vincita o rettifica'}"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm focus:outline-none focus:border-[#78BE20]" />
+          </div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+            Salva Movimento
+          </button>
+        </form>
+      `);
+    };
+
+    window.submitCashMovement = async function(e, mode) {
+      e.preventDefault();
+      const rawAmt = parseFloat(document.getElementById('cash-amount').value);
+      if (isNaN(rawAmt) || rawAmt <= 0) {
+        showToast("Inserisci un importo valido.", "error");
+        return;
+      }
+
+      const rawDate = document.getElementById('cash-date')?.value;
+      const dateStr = rawDate ? rawDate.split('-').reverse().join('/') : new Date().toLocaleDateString('it-IT');
+      const noteInput = document.getElementById('cash-note')?.value.trim();
+
+      if (mode === 'deposit') {
+        const playerId = document.getElementById('cash-player').value;
+        const playerName = getPlayerName(playerId);
+        await addTransactionToCloud({
+          type: 'deposit',
+          playerId,
+          playerName,
+          amount: Number(rawAmt.toFixed(2)),
+          note: noteInput || `Versamento ${playerName}`,
+          date: dateStr,
+          createdAt: Date.now()
+        });
+        showToast(`Caricati ${formatEuro(rawAmt)} per ${playerName}!`, "success");
+      } else {
+        const sign = Number(document.getElementById('cash-adjust-sign')?.value || -1);
+        const finalAmt = Number((rawAmt * sign).toFixed(2));
+        await addTransactionToCloud({
+          type: 'adjustment',
+          amount: finalAmt,
+          note: noteInput || (sign < 0 ? 'Prelievo Cassa' : 'Rettifica Cassa'),
+          date: dateStr,
+          createdAt: Date.now()
+        });
+        showToast("Movimento registrato in Cassa!", "success");
+      }
+      closeModal();
+    };
+
+    // Modal: Conferma eliminazione movimento (no confirm())
+    window.askDeleteTransaction = function(txId, note) {
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="font-bold text-base text-white">Elimina Movimento</h3>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <div class="p-4 space-y-4">
+          <p class="text-xs text-gray-300">Vuoi eliminare definitivamente il movimento <strong>"${escapeHtml(note)}"</strong> dalla Cassa Comune?</p>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button onclick="closeModal()" class="py-3 rounded-xl bg-white/5 text-gray-300 font-bold text-xs">Annulla</button>
+            <button onclick="confirmDeleteTransaction('${txId}')" class="py-3 rounded-xl bg-red-500 text-white font-extrabold text-xs">Elimina</button>
+          </div>
+        </div>
+      `);
+    };
+
+    window.confirmDeleteTransaction = async function(txId) {
+      await deleteTransactionFromCloud(txId);
+      closeModal();
+      showToast("Movimento eliminato dalla Cassa.", "info");
+    };
+
+    // Modal: Impostazioni (Nomi Giocatori, Bonus Multipla, Demo Data, Chiavi GitHub Pages)
+    window.openSettingsModal = function() {
+      const playersRows = state.settings.players.map((p, idx) => `
+        <div class="flex items-center gap-2">
+          <span class="w-6 text-xs font-bold text-gray-500">#${idx + 1}</span>
+          <input type="text" data-player-id="${p.id}" value="${escapeHtml(p.name)}"
+            class="settings-player-input flex-1 px-3 py-2 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#78BE20]" />
+          ${state.settings.players.length > 2 ? `
+            <button type="button" onclick="removePlayerInSettings('${p.id}')" class="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold">✕</button>
+          ` : ''}
+        </div>
+      `).join('');
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <div class="p-4 space-y-5 overflow-y-auto">
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Titolo Settimana</label>
+            <input id="settings-week-label" type="text" value="${escapeHtml(state.currentWeek.weekLabel)}"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#78BE20]" />
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Colleghi (${state.settings.players.length})</label>
+              <button type="button" onclick="addPlayerInSettings()" class="text-xs font-bold text-[#78BE20] hover:underline">+ Aggiungi</button>
+            </div>
+            <div class="space-y-2">${playersRows}</div>
+          </div>
+
+          <label class="flex items-center justify-between p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
+            <div>
+              <div class="text-xs font-bold text-white">Bonus Multipla Sisal</div>
+              <div class="text-[11px] text-gray-400">+3% su 5 eventi, +6% su 6 eventi</div>
+            </div>
+            <input id="settings-bonus-toggle" type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} class="w-5 h-5 accent-[#78BE20]" />
+          </label>
+
+          <button onclick="saveSettingsModal()" class="w-full py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+            Salva Impostazioni
+          </button>
+
+          <!-- Dati Demo & Reset -->
+          <div class="pt-3 border-t border-white/10 space-y-2.5">
+            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Test Rapido</div>
+            <button onclick="loadDemoData()" class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-[#78BE20]/40 text-[#78BE20] font-bold text-sm transition flex items-center justify-center gap-2">
+              <span>⚡</span> Carica Dati Demo (Schedine 08/11)
+            </button>
+            <button onclick="resetCurrentWeekOnly()" class="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-xs transition">
+              Svuota giocate settimana corrente
+            </button>
+          </div>
+
+          <!-- Configurazione Hosting Esterno (GitHub Pages) -->
+          <details class="pt-3 border-t border-white/10">
+            <summary class="text-xs font-bold text-gray-400 cursor-pointer hover:text-white">
+              ⚙️ Chiavi API per GitHub Pages (Opzionale)
+            </summary>
+            <div class="mt-3 space-y-3 text-xs">
+              <p class="text-gray-400">Nell'anteprima funziona tutto in automatico. Se pubblichi su GitHub Pages, puoi testare qui le tue chiavi in sessione:</p>
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">Gemini API Key (per Screenshot AI)</label>
+                <input id="ext-gemini-key" type="password" value="${escapeHtml(runtimeGeminiKey)}" placeholder="AIzaSy..."
+                  class="w-full px-3 py-2 rounded-xl bg-[#121212] border border-white/15 text-white text-xs" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-gray-400 mb-1">Firebase Config JSON (per Sync Live)</label>
+                <textarea id="ext-firebase-json" rows="3" placeholder='{"apiKey":"...","projectId":"..."}'
+                  class="w-full px-3 py-2 rounded-xl bg-[#121212] border border-white/15 text-white text-[11px] font-mono"></textarea>
+              </div>
+              <button onclick="applyExternalKeys()" class="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs">
+                Applica Chiavi in Sessione
+              </button>
+            </div>
+          </details>
+        </div>
+      `);
+    };
+
+    window.applyExternalKeys = function() {
+      const gKey = document.getElementById('ext-gemini-key')?.value.trim();
+      const fbStr = document.getElementById('ext-firebase-json')?.value.trim();
+      if (gKey) runtimeGeminiKey = gKey;
+      if (fbStr) {
+        try {
+          const parsed = JSON.parse(fbStr);
+          initFirebase(parsed);
+          showToast("Configurazione Firebase applicata!", "success");
+        } catch (e) {
+          showToast("JSON Firebase non valido.", "error");
+          return;
+        }
+      } else {
+        showToast("Chiave Gemini aggiornata per questa sessione.", "success");
+      }
+      closeModal();
+    };
+
+    window.addPlayerInSettings = async function() {
+      state.settings.players.push({ id: 'p_' + Date.now(), name: `Collega ${state.settings.players.length + 1}` });
+      await saveSettingsToCloud();
+      openSettingsModal();
+      render();
+    };
+
+    window.removePlayerInSettings = async function(pid) {
+      state.settings.players = state.settings.players.filter(p => p.id !== pid);
+      await saveSettingsToCloud();
+      openSettingsModal();
+      render();
+    };
+
+    window.saveSettingsModal = async function() {
+      const inputs = document.querySelectorAll('.settings-player-input');
+      const updated = [];
+      inputs.forEach(inp => {
+        updated.push({ id: inp.getAttribute('data-player-id'), name: inp.value.trim() || 'Giocatore' });
+      });
+      state.settings.players = updated;
+
+      const bonusEl = document.getElementById('settings-bonus-toggle');
+      if (bonusEl) state.settings.bonusMultipla = bonusEl.checked;
+
+      const weekEl = document.getElementById('settings-week-label');
+      if (weekEl && weekEl.value.trim()) state.currentWeek.weekLabel = weekEl.value.trim();
+
+      await saveSettingsToCloud();
+      await saveCurrentWeekToCloud();
+      closeModal();
+      render();
+      showToast("Impostazioni salvate!", "success");
+    };
+
+    window.resetCurrentWeekOnly = async function() {
+      state.currentWeek.picks = [];
+      state.currentWeek.checkedA = {};
+      state.currentWeek.checkedB = {};
+      await saveCurrentWeekToCloud();
+      closeModal();
+      render();
+      showToast("Settimana corrente svuotata.", "info");
+    };
+
+    // Carica i 10 match esatti dagli screenshot Sisal del 08/11/2026 + 20€ a testa
+    window.loadDemoData = async function() {
+      const p = state.settings.players;
+      while (p.length < 5) {
+        p.push({ id: 'p_' + (p.length + 1), name: `Collega ${p.length + 1}` });
+      }
+      await saveSettingsToCloud();
+
+      const now = Date.now();
+      state.currentWeek = {
+        weekLabel: 'Bollettone Demo — 08/11/2026',
+        checkedA: {},
+        checkedB: {},
+        picks: [
+          { id: 'd1', playerId: p[0].id, campionato: 'ENG Premier League', partita: 'Crystal Palace - Liverpool', mercato: '1X2 ESITO FINALE: 2', quota: 1.55, dataOra: '08/11 - 15:00', status: 'pending', createdAt: now + 1 },
+          { id: 'd2', playerId: p[0].id, campionato: 'ENG Premier League', partita: 'Sunderland - Chelsea', mercato: 'U/O 2.5 + GG/NG: GOAL + OVER', quota: 2.05, dataOra: '08/11 - 15:00', status: 'pending', createdAt: now + 2 },
+
+          { id: 'd3', playerId: p[1].id, campionato: 'GER Bundesliga', partita: 'Hoffenheim - Schalke 04', mercato: '1X2 + U/O 1.5: 1 + O', quota: 1.75, dataOra: '08/11 - 19:30', status: 'pending', createdAt: now + 3 },
+          { id: 'd4', playerId: p[1].id, campionato: 'ITA Serie A', partita: 'Genoa - Milan', mercato: '1X2 ESITO FINALE: 2', quota: 2.00, dataOra: '08/11 - 15:00', status: 'pending', createdAt: now + 4 },
+
+          { id: 'd5', playerId: p[2].id, campionato: 'Altro', partita: 'Vicenza - Cremonese', mercato: 'MULTIGOAL 1T + MULTIGOAL 2T: 1-4/1-4', quota: 1.80, dataOra: '08/11 - 19:30', status: 'pending', createdAt: now + 5 },
+          { id: 'd6', playerId: p[2].id, campionato: 'ESP La Liga', partita: 'Real Sociedad - Rayo Vallecano', mercato: '1X2 + U/O 2.5: 1 + O', quota: 2.40, dataOra: '08/11 - 16:15', status: 'pending', createdAt: now + 6 },
+
+          { id: 'd7', playerId: p[3].id, campionato: 'ITA Serie A', partita: 'Fiorentina - Juventus', mercato: 'DOPPIA CHANCE: 1X', quota: 1.70, dataOra: '08/11 - 20:45', status: 'pending', createdAt: now + 7 },
+          { id: 'd8', playerId: p[3].id, campionato: 'ITA Serie B', partita: 'Carrarese - Sampdoria', mercato: 'COMBO: DC + GOAL/NOGOAL: 1X + GOAL', quota: 2.20, dataOra: '08/11 - 17:15', status: 'pending', createdAt: now + 8 },
+
+          { id: 'd9', playerId: p[4].id, campionato: 'ESP La Liga', partita: 'Atletico Madrid - Barcellona', mercato: 'U/O 2.5 + GG/NG: GOAL + OVER', quota: 1.45, dataOra: '08/11 - 21:00', status: 'pending', createdAt: now + 9 },
+          { id: 'd10', playerId: p[4].id, campionato: 'ITA Serie A', partita: 'Inter - Como', mercato: 'U/O 2.5 + GG/NG: GOAL + OVER', quota: 1.67, dataOra: '08/11 - 18:00', status: 'pending', createdAt: now + 10 }
+        ]
+      };
+      await saveCurrentWeekToCloud();
+
+      if (state.transactions.length === 0) {
+        const dateStr = new Date().toLocaleDateString('it-IT');
+        for (let i = 0; i < 5; i++) {
+          await addTransactionToCloud({
+            type: 'deposit',
+            playerId: p[i].id,
+            playerName: p[i].name,
+            amount: 20.00,
+            note: 'Fondo Cassa Iniziale (Demo)',
+            date: dateStr,
+            createdAt: now - (5 - i) * 1000
+          });
+        }
+      }
+
+      closeModal();
+      state.activeTab = 'schedine';
+      render();
+      showToast("Dati Demo caricati! Ecco Schedina A e Sistema B pronti.", "success");
+    };
+
+    // =========================================================================
+    // 9. RENDERING DELLE 4 TAB
+    // =========================================================================
+    function render() {
+      const lbl = document.getElementById('header-week-label');
+      if (lbl) lbl.textContent = state.currentWeek.weekLabel;
+
+      ['gioca', 'schedine', 'cassa', 'statistiche'].forEach(t => {
+        const btn = document.getElementById(`nav-${t}`);
+        if (!btn) return;
+        if (state.activeTab === t) {
+          btn.classList.add('text-[#78BE20]');
+          btn.classList.remove('text-gray-500');
+        } else {
+          btn.classList.remove('text-[#78BE20]');
+          btn.classList.add('text-gray-500');
+        }
+      });
+
+      const calc = computeTickets();
+      const badgeSched = document.getElementById('badge-schedine');
+      if (badgeSched) {
+        if (calc.ticketA.picks.length >= 5 && calc.ticketB.picks.length >= 6) badgeSched.classList.remove('hidden');
+        else badgeSched.classList.add('hidden');
+      }
+
+      const main = document.getElementById('main-content');
+      if (!main) return;
+
+      if (state.activeTab === 'gioca') main.innerHTML = renderGiocaTab(calc);
+      else if (state.activeTab === 'schedine') main.innerHTML = renderSchedineTab(calc);
+      else if (state.activeTab === 'cassa') main.innerHTML = renderCassaTab();
+      else if (state.activeTab === 'statistiche') main.innerHTML = renderStatisticheTab();
+    }
+
+    function renderMatchDropdownOnly() {
+      const box = document.getElementById('espn-matches-list');
+      if (!box) return;
+      box.innerHTML = buildESPNMatchesListHtml();
+    }
+
+    function buildESPNMatchesListHtml() {
+      if (state.selectedLeague === 'custom') return '';
+      if (state.loadingLeague) {
+        return `<div class="py-3 text-center text-xs text-gray-400">Caricamento calendario partite...</div>`;
+      }
+      const list = state.leagueMatchesCache[state.selectedLeague] || [];
+      if (list.length === 0) {
+        return `<div class="py-2.5 px-3 rounded-xl bg-[#121212] text-[11px] text-gray-500">Nessuna partita in programma trovata ora per questo campionato. Scrivi il nome manualmente qui sotto.</div>`;
+      }
+      const q = state.matchSearchQuery.trim().toLowerCase();
+      const filtered = q ? list.filter(m => m.partita.toLowerCase().includes(q)) : list;
+
+      if (filtered.length === 0) {
+        return `<div class="py-2.5 px-3 text-[11px] text-gray-500">Nessun match corrisponde alla ricerca "${escapeHtml(state.matchSearchQuery)}".</div>`;
+      }
+
+      return `
+        <div class="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+          ${filtered.map(m => `
+            <button type="button" onclick="selectMatchFromESPN('${escapeJs(m.partita)}', '${escapeJs(m.dataOra)}')"
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#121212] hover:bg-[#2a2a2a] border border-white/5 flex items-center justify-between gap-2 transition">
+              <span class="text-xs font-semibold text-white truncate">${escapeHtml(m.partita)}</span>
+              <span class="text-[10px] font-medium text-[#78BE20] shrink-0">${escapeHtml(m.dataOra || m.status)}</span>
+            </button>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // --- TAB 1: GIOCA ---
+    function renderGiocaTab(calc) {
+      if (!state.selectedPlayerId && state.settings.players[0]) {
+        state.selectedPlayerId = state.settings.players[0].id;
+      }
+
+      const picks = state.currentWeek.picks || [];
+      const matchCounts = {};
+      picks.forEach(p => {
+        const k = normalizeMatch(p.partita);
+        matchCounts[k] = (matchCounts[k] || 0) + 1;
+      });
+
+      const playerPills = state.settings.players.map(p => {
+        const count = picks.filter(pk => pk.playerId === p.id).length;
+        const isSel = state.selectedPlayerId === p.id;
+        return `
+          <button onclick="selectPlayer('${p.id}')"
+            class="shrink-0 px-3.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-2 ${
+              isSel
+                ? 'bg-[#78BE20] text-[#121212] border-[#78BE20] shadow-md shadow-[#78BE20]/20'
+                : 'bg-[#1E1E1E] text-gray-300 border-white/10 hover:bg-[#262626]'
+            }">
+            <span>${escapeHtml(p.name)}</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+              isSel
+                ? 'bg-black/20 text-[#121212]'
+                : count >= 2 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-white/10 text-gray-400'
+            }">${count}/2</span>
+          </button>
+        `;
+      }).join('');
+
+      const activeMarketObj = MARKETS.find(m => m.key === state.form.mercato) || MARKETS[0];
+      const qVal = parseFloat(String(state.form.quota).replace(',', '.'));
+      const showQuotaWarn = !isNaN(qVal) && qVal > 0 && qVal < 1.40;
+
+      // Card di anteprima/conferma risultati estratti dallo Screenshot AI
+      let aiPreviewHtml = '';
+      if (state.aiPreviewMatches && state.aiPreviewMatches.length > 0) {
+        aiPreviewHtml = `
+          <div class="rounded-2xl bg-[#121212] border border-[#78BE20]/50 p-3.5 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-[#78BE20]">✨ Estratte dallo Screenshot (${state.aiPreviewMatches.length})</span>
+              <button type="button" onclick="dismissAIPreview()" class="text-xs text-gray-400 hover:text-white">Chiudi</button>
+            </div>
+            ${state.aiPreviewMatches.map((m, idx) => {
+              const tooLow = Number(m.quota) < 1.40;
+              return `
+                <div class="p-3 rounded-xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="font-bold text-xs text-white truncate">${escapeHtml(m.partita)}</div>
+                      <div class="text-[11px] text-gray-400 truncate">${escapeHtml(m.mercato)}${m.esito ? ': ' + escapeHtml(m.esito) : ''}</div>
+                      ${m.dataOra ? `<div class="text-[10px] text-gray-500">${escapeHtml(m.dataOra)}</div>` : ''}
+                    </div>
+                    <span class="px-2 py-1 rounded-lg font-black text-xs shrink-0 ${tooLow ? 'bg-red-500/20 text-red-400' : 'bg-[#78BE20]/20 text-[#78BE20]'}">
+                      ${Number(m.quota).toFixed(2)}
+                    </span>
+                  </div>
+                  ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a 1.40 (non consentita)</div>` : ''}
+                  <div class="flex gap-2">
+                    <button type="button" onclick="confirmAIPick(${idx})" ${tooLow ? 'disabled' : ''}
+                      class="flex-1 py-2 rounded-lg bg-[#78BE20] hover:bg-[#89d428] disabled:opacity-40 text-[#121212] font-extrabold text-[11px] transition">
+                      ✓ Aggiungi subito (${escapeHtml(getPlayerName(state.selectedPlayerId))})
+                    </button>
+                    <button type="button" onclick="loadAIPickIntoForm(${idx})"
+                      class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-[11px] transition">
+                      Modifica
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Lista giocate inserite
+      const picksListHtml = picks.length === 0
+        ? `
+          <div class="text-center py-8 px-4 rounded-2xl bg-[#1E1E1E] border border-dashed border-white/10">
+            <div class="text-2xl mb-1.5">⚽</div>
+            <div class="text-sm font-bold text-gray-300">Nessuna giocata inserita</div>
+            <p class="text-xs text-gray-500 mt-1">Carica uno screenshot Sisal oppure scegli la partita dal campionato.</p>
+            <button onclick="loadDemoData()" class="mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-[#78BE20]/40 text-[#78BE20] text-xs font-bold transition">
+              ⚡ Carica Dati Demo (08/11)
+            </button>
+          </div>
+        `
+        : picks.slice().reverse().map(pk => {
+            const isDup = matchCounts[normalizeMatch(pk.partita)] > 1;
+            return `
+              <div class="p-3.5 rounded-2xl bg-[#1E1E1E] border ${isDup ? 'border-amber-500/60' : 'border-white/10'} flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center flex-wrap gap-1.5 mb-1">
+                    <span class="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-gray-200">${escapeHtml(getPlayerName(pk.playerId))}</span>
+                    ${pk.campionato ? `<span class="text-[10px] text-gray-500">${escapeHtml(pk.campionato)}</span>` : ''}
+                    ${isDup ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">⚠️ Già scelta</span>` : ''}
+                  </div>
+                  <div class="font-bold text-sm text-white truncate">${escapeHtml(pk.partita)}</div>
+                  <div class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(pk.mercato)}</div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <div class="px-2.5 py-1.5 rounded-xl bg-[#78BE20]/15 text-[#78BE20] font-black text-sm">
+                    ${Number(pk.quota).toFixed(2)}
+                  </div>
+                  <button onclick="deletePick('${pk.id}')" aria-label="Elimina" class="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      return `
+        <!-- Barra Avanzamento -->
+        <div class="p-3.5 rounded-2xl bg-[#1E1E1E] border border-white/10 flex items-center justify-between gap-2">
+          <div>
+            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avanzamento Settimana</div>
+            <div class="text-sm font-bold text-white mt-0.5">
+              ${calc.playersComplete}/${calc.playersCount} completi
+              <span class="text-gray-500 font-normal">(${picks.length}/${calc.playersCount * 2} partite)</span>
+            </div>
+          </div>
+          <button onclick="switchTab('schedine')" class="px-3 py-2 rounded-xl bg-[#78BE20]/15 text-[#78BE20] text-xs font-extrabold hover:bg-[#78BE20]/25 transition shrink-0">
+            Schedine →
+          </button>
+        </div>
+
+        <!-- Selettore Giocatore -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Chi inserisce le 2 puntate?</span>
+            <button onclick="openSettingsModal()" class="text-[11px] font-semibold text-[#78BE20]">Modifica nomi</button>
+          </div>
+          <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            ${playerPills}
+          </div>
+        </div>
+
+        <!-- Card Inserimento: Screenshot AI + Menu Campionati -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-4 shadow-xl">
+          <!-- Bottone Evidente Screenshot AI -->
+          <input id="screenshot-file-input" type="file" accept="image/*" class="hidden" onchange="handleScreenshotChange(event)" />
+          <button type="button" onclick="triggerScreenshotUpload()" ${state.loadingAI ? 'disabled' : ''}
+            class="w-full py-3.5 px-4 rounded-2xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-black text-sm shadow-lg shadow-[#78BE20]/20 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60">
+            ${state.loadingAI ? `
+              <svg class="animate-spin h-5 w-5 text-[#121212]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span>Lettura Screenshot Sisal in corso...</span>
+            ` : `
+              <span>📸 Carica Screenshot Sisal (AI)</span>
+            `}
+          </button>
+
+          ${aiPreviewHtml}
+
+          <div class="flex items-center gap-3">
+            <div class="h-px bg-white/10 flex-1"></div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">oppure seleziona dal menu</span>
+            <div class="h-px bg-white/10 flex-1"></div>
+          </div>
+
+          <!-- Menu Partite per Campionato (ESPN API) -->
+          <div class="space-y-2.5 p-3 rounded-2xl bg-[#171717] border border-white/5">
+            <div class="grid grid-cols-1 gap-2">
+              <label class="text-[11px] font-bold text-gray-400">1. Scegli Campionato</label>
+              <select onchange="onLeagueChange(this.value)"
+                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#78BE20]">
+                ${LEAGUES.map(l => `<option value="${l.code}" ${state.selectedLeague === l.code ? 'selected' : ''}>${l.label}</option>`).join('')}
+              </select>
+            </div>
+
+            ${state.selectedLeague !== 'custom' ? `
+              <input type="text" placeholder="🔍 Filtra partita nel campionato..."
+                value="${escapeHtml(state.matchSearchQuery)}"
+                oninput="onMatchSearchInput(this.value)"
+                class="w-full px-3 py-2 rounded-xl bg-[#121212] border border-white/10 text-white text-xs placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+              <div id="espn-matches-list">
+                ${buildESPNMatchesListHtml()}
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Form Partita, Mercato, Esito e Quota -->
+          <form onsubmit="submitPickForm(event)" class="space-y-3">
+            <div>
+              <label class="block text-[11px] font-semibold text-gray-400 mb-1">2. Partita (selezionata o manuale)</label>
+              <input type="text" required placeholder="Es. Genoa - Milan  oppure  Vicenza - Cremonese"
+                value="${escapeHtml(state.form.partita)}"
+                oninput="updateFormField('partita', this.value)"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 mb-1">3. Tipologia Scommessa</label>
+                <select onchange="onMarketChange(this.value)"
+                  class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-[#78BE20]">
+                  ${MARKETS.map(m => `<option value="${m.key}" ${state.form.mercato === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Esito Specifico</label>
+                <input type="text" required placeholder="Es. 2, 1X, GOAL + OVER"
+                  value="${escapeHtml(state.form.esito)}"
+                  oninput="updateFormField('esito', this.value)"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+              </div>
+            </div>
+
+            <!-- Suggerimenti rapidi esito -->
+            <div class="flex flex-wrap gap-1.5">
+              ${activeMarketObj.suggestions.map(s => `
+                <button type="button" onclick="selectOutcomeSuggestion('${escapeJs(s)}')"
+                  class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    state.form.esito === s
+                      ? 'bg-[#78BE20] text-[#121212] border-[#78BE20]'
+                      : 'bg-[#121212] text-gray-300 border-white/10 hover:border-[#78BE20]/50'
+                  }">${escapeHtml(s)}</button>
+              `).join('')}
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 mb-1">4. Quota Sisal (min. 1.40)</label>
+                <input type="number" step="0.01" min="1.40" required placeholder="1.75"
+                  value="${escapeHtml(state.form.quota)}"
+                  oninput="updateFormField('quota', this.value)"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-[#78BE20] font-black text-base placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 mb-1">Data / Ora (opz.)</label>
+                <input type="text" placeholder="Es. 08/11 - 15:00"
+                  value="${escapeHtml(state.form.dataOra)}"
+                  oninput="updateFormField('dataOra', this.value)"
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+              </div>
+            </div>
+
+            <div id="quota-warning" class="${showQuotaWarn ? '' : 'hidden'} p-2.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-bold">
+              ⛔ Regola Bollettone: non sono ammesse quote inferiori a 1.40!
+            </div>
+
+            <button type="submit" class="w-full py-3.5 rounded-xl bg-white hover:bg-gray-200 text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
+              + Aggiungi Puntata per ${escapeHtml(getPlayerName(state.selectedPlayerId))}
+            </button>
+          </form>
+        </div>
+
+        <!-- Lista Giocate Settimana -->
+        <div class="space-y-2.5">
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Giocate Inserite (${picks.length})</h2>
+          ${picksListHtml}
+        </div>
+      `;
+    }
+
+    // --- TAB 2: SCHEDINE ---
+    function renderSchedineTab(calc) {
+      if (state.currentWeek.picks.length === 0) {
+        return `
+          <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
+            <div class="text-4xl mb-3">🎫</div>
+            <h2 class="text-lg font-black text-white">Nessuna schedina generata</h2>
+            <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Inserisci le 2 partite a testa nella tab GIOCA oppure carica i dati demo per vedere Schedina A e Sistema B.</p>
+            <div class="flex flex-col sm:flex-row gap-2.5 justify-center mt-5">
+              <button onclick="switchTab('gioca')" class="px-5 py-3 rounded-xl bg-[#78BE20] text-[#121212] font-extrabold text-xs">Vai a GIOCA</button>
+              <button onclick="loadDemoData()" class="px-5 py-3 rounded-xl bg-white/5 border border-white/15 text-white font-bold text-xs">⚡ Carica Dati Demo</button>
+            </div>
+          </div>
+        `;
+      }
+
+      const renderTicketRow = (pk, ticketType) => {
+        const isChecked = !!(state.currentWeek[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
+        return `
+          <div class="p-3.5 border-b border-white/5 last:border-0 transition ${isChecked ? 'bg-[#78BE20]/5' : ''}">
+            <div class="flex items-start gap-3">
+              <!-- Checkbox Compilazione Rapida Sisal -->
+              <button onclick="toggleCheckSisal('${ticketType}', '${pk.id}')" title="Spunta quando inserita su Sisal"
+                class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
+                  isChecked ? 'bg-[#78BE20] border-[#78BE20] text-[#121212]' : 'border-gray-600 bg-[#121212] text-transparent'
+                }">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </button>
+
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-sm text-white truncate ${isChecked ? 'line-through opacity-60' : ''}">${escapeHtml(pk.partita)}</span>
+                  <span class="font-black text-sm text-[#78BE20] shrink-0">${Number(pk.quota).toFixed(2)}</span>
+                </div>
+                <div class="flex items-center justify-between gap-2 mt-0.5">
+                  <span class="text-xs text-gray-400 truncate">${escapeHtml(pk.mercato)}</span>
+                  <span class="text-[10px] text-gray-500 shrink-0">${escapeHtml(pk.dataOra || '')}</span>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 mt-2.5">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] font-semibold text-gray-300 truncate">${escapeHtml(pk.playerName)}</span>
+                    ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[10px] font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="setPickStatus('${pk.id}', 'won')"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                        pk.status === 'won'
+                          ? 'bg-[#78BE20] text-[#121212] border-[#78BE20]'
+                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#78BE20]'
+                      }">✅ Presa</button>
+                    <button onclick="setPickStatus('${pk.id}', 'lost')"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                        pk.status === 'lost'
+                          ? 'bg-red-500 text-white border-red-400'
+                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-red-400'
+                      }">❌ Persa</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const aBadge = calc.ticketA.status === 'won'
+        ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketA.actualWin)}</span>`
+        : calc.ticketA.status === 'lost'
+          ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
+          : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Quota ${calc.ticketA.quotaTot.toFixed(2)}</span>`;
+
+      const bBadge = calc.ticketB.status === 'won'
+        ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketB.actualWin)}</span>`
+        : calc.ticketB.status === 'lost'
+          ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
+          : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Sistema 1 errore</span>`;
+
+      return `
+        <!-- Azioni Rapide -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <button onclick="copyWhatsAppSummary()" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+            <span>📋</span> Copia WhatsApp
+          </button>
+          <button onclick="openArchiveModal()" class="py-3 px-3 rounded-2xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+            <span>🏁</span> Chiudi & Verifica
+          </button>
+        </div>
+
+        <p class="text-[11px] text-gray-500 text-center">Usa le caselle a sinistra come checklist mentre compili le schedine su Sisal.</p>
+
+        <!-- SCHEDINA A -->
+        <section class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-xl">
+          <div class="sisal-pattern p-4 border-b border-white/10">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina A · Secca</div>
+                <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
+              </div>
+              ${aBadge}
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 mt-3">
+              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#78BE20]">Puntata</div>
+                <div class="font-black text-base text-white">5,00 €</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#78BE20]">Vincita potenziale</div>
+                <div class="font-black text-base text-white">${formatEuro(calc.ticketA.potentialWin)}</div>
+              </div>
+            </div>
+
+            <label class="mt-3 flex items-center justify-between text-xs text-gray-300 cursor-pointer">
+              <span>Bonus Multipla Sisal (+3% su 5 / +6% su 6)</span>
+              <input type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} onchange="toggleBonusMultipla()" class="w-4 h-4 accent-[#78BE20]" />
+            </label>
+          </div>
+
+          <div>
+            ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A')).join('')}
+          </div>
+        </section>
+
+        <!-- SCHEDINA B -->
+        <section class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-xl">
+          <div class="sisal-pattern p-4 border-b border-white/10">
+            <div class="flex items-center justify-between gap-2">
+              <div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina B · Sistema</div>
+                <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
+              </div>
+              ${bBadge}
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mt-3">
+              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
+                <div class="font-black text-sm text-white">5,00 €</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-amber-400">Min (5/6)</div>
+                <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.minWin)}</div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#78BE20]">Max (6/6)</div>
+                <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.maxWin)}</div>
+              </div>
+            </div>
+
+            <div class="mt-3 p-2.5 rounded-xl bg-black/35 border border-white/5 text-[11px] text-gray-400 space-y-1">
+              <div class="flex justify-between">
+                <span>6 su 6 (0,50 € × 1 col.):</span>
+                <span class="font-bold text-gray-200">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>5 su 6 (0,75 € × 6 col.):</span>
+                <span class="font-bold text-gray-200">4,50 € → da ${formatEuro(calc.ticketB.minWin)}</span>
+              </div>
+              <div class="flex justify-between pt-1 border-t border-white/5">
+                <span>Stato sistema:</span>
+                <span class="font-bold text-[#78BE20]">${escapeHtml(calc.ticketB.hitsLabel)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B')).join('')}
+          </div>
+        </section>
+      `;
+    }
+
+    // --- TAB 3: CASSA ---
+    function renderCassaTab() {
+      const txs = state.transactions || [];
+      let totalDeposited = 0;
+      let totalBet = 0;
+      let totalWon = 0;
+      let totalAdjust = 0;
+      const depositedByPlayer = {};
+
+      state.settings.players.forEach(p => { depositedByPlayer[p.id] = 0; });
+
+      txs.forEach(t => {
+        const amt = Number(t.amount) || 0;
+        if (t.type === 'deposit') {
+          totalDeposited += amt;
+          if (t.playerId) depositedByPlayer[t.playerId] = (depositedByPlayer[t.playerId] || 0) + amt;
+        } else if (t.type === 'bet') {
+          totalBet += Math.abs(amt);
+        } else if (t.type === 'win') {
+          totalWon += amt;
+        } else {
+          totalAdjust += amt;
+        }
+      });
+
+      const currentBalance = totalDeposited - totalBet + totalWon + totalAdjust;
+
+      const playerDepositsHtml = state.settings.players.map(p => {
+        const dep = depositedByPlayer[p.id] || 0;
+        return `
+          <div class="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-xs text-white">
+                ${escapeHtml(p.name.slice(0, 2).toUpperCase())}
+              </div>
+              <div>
+                <div class="font-bold text-sm text-white">${escapeHtml(p.name)}</div>
+                <div class="text-[11px] text-gray-500">Versato in cassa</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <span class="font-black text-sm text-white">${formatEuro(dep)}</span>
+              <button onclick="openCashModal('deposit', '${p.id}')" class="px-2.5 py-1 rounded-lg bg-[#78BE20]/15 text-[#78BE20] text-xs font-bold hover:bg-[#78BE20]/25">+ Versa</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const txListHtml = txs.length === 0
+        ? `<div class="text-center py-6 text-xs text-gray-500">Nessun movimento registrato in cassa.</div>`
+        : txs.map(t => {
+            const isPos = t.amount >= 0;
+            const icon = t.type === 'deposit' ? '💶' : t.type === 'win' ? '🏆' : t.type === 'bet' ? '🎫' : '⚖️';
+            return `
+              <div class="flex items-center justify-between gap-2 py-2.5 border-b border-white/5 last:border-0">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                  <span class="text-base shrink-0">${icon}</span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold text-white truncate">${escapeHtml(t.note || 'Movimento')}</div>
+                    <div class="text-[10px] text-gray-500">${escapeHtml(t.date || '')}</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <span class="font-black text-sm ${isPos ? 'text-[#78BE20]' : 'text-red-400'}">
+                    ${isPos ? '+' : ''}${formatEuro(t.amount)}
+                  </span>
+                  <button onclick="askDeleteTransaction('${t.id}', '${escapeJs(t.note || 'Movimento')}')" title="Elimina movimento"
+                    class="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      return `
+        <!-- Saldo Cassa Comune -->
+        <div class="rounded-3xl sisal-pattern border border-[#78BE20]/35 p-5 shadow-xl">
+          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Saldo Attuale Cassa Comune</div>
+          <div class="text-4xl font-black mt-1.5 tracking-tight ${currentBalance >= 0 ? 'text-white' : 'text-red-400'}">
+            ${formatEuro(currentBalance)}
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/10">
+            <div>
+              <div class="text-[10px] text-gray-400 uppercase font-semibold">Versato</div>
+              <div class="font-bold text-sm text-white mt-0.5">${formatEuro(totalDeposited)}</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-gray-400 uppercase font-semibold">Speso</div>
+              <div class="font-bold text-sm text-red-400 mt-0.5">-${formatEuro(totalBet)}</div>
+            </div>
+            <div>
+              <div class="text-[10px] text-gray-400 uppercase font-semibold">Vinto</div>
+              <div class="font-bold text-sm text-[#78BE20] mt-0.5">+${formatEuro(totalWon)}</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 mt-4">
+            <button onclick="openCashModal('deposit')" class="py-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition">
+              + Carica Versamento
+            </button>
+            <button onclick="openCashModal('adjustment')" class="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-xs transition">
+              ⚖️ Prelievo / Rettifica
+            </button>
+          </div>
+        </div>
+
+        <!-- Versamenti per Giocatore -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4">
+          <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Versamenti per Utente</h3>
+          ${playerDepositsHtml}
+        </div>
+
+        <!-- Storico Movimenti -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4">
+          <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Storico Movimenti Cassa (${txs.length})</h3>
+          ${txListHtml}
+        </div>
+      `;
+    }
+
+    // --- TAB 4: STATISTICHE ---
+    function renderStatisticheTab() {
+      const history = state.history || [];
+      const currentPicks = state.currentWeek.picks || [];
+      const txs = state.transactions || [];
+
+      // Statistiche Globali
+      const totalWeeks = history.length;
+      const winsA = history.filter(h => h.schedinaA?.won).length;
+      const winsB = history.filter(h => h.schedinaB?.won).length;
+      const winRateA = totalWeeks > 0 ? (winsA / totalWeeks) * 100 : 0;
+      const winRateB = totalWeeks > 0 ? (winsB / totalWeeks) * 100 : 0;
+
+      const totalStaked = history.reduce((acc, h) => acc + (Number(h.totalStake) || 10), 0);
+      const totalWon = history.reduce((acc, h) => acc + (Number(h.totalWin) || 0), 0);
+      const netProfit = totalWon - totalStaked;
+      const roi = totalStaked > 0 ? (netProfit / totalStaked) * 100 : 0;
+
+      // Raccoglie tutte le partite risolte (archiviate + esiti live)
+      const allResolved = [];
+      history.slice().reverse().forEach(h => {
+        (h.picks || []).forEach(pk => {
+          if (pk.status === 'won' || pk.status === 'lost') allResolved.push(pk);
+        });
+      });
+      currentPicks.forEach(pk => {
+        if (pk.status === 'won' || pk.status === 'lost') allResolved.push(pk);
+      });
+
+      const globalWonMatches = allResolved.filter(p => p.status === 'won').length;
+      const globalHitRate = allResolved.length > 0 ? (globalWonMatches / allResolved.length) * 100 : 0;
+
+      // Versamenti per utente
+      const depositedByPlayer = {};
+      txs.forEach(t => {
+        if (t.type === 'deposit' && t.playerId) {
+          depositedByPlayer[t.playerId] = (depositedByPlayer[t.playerId] || 0) + (Number(t.amount) || 0);
+        }
+      });
+
+      // Statistiche individuali dettagliate
+      const playerStats = state.settings.players.map(p => {
+        const myPicks = allResolved.filter(pk => pk.playerId === p.id);
+        const total = myPicks.length;
+        const wonList = myPicks.filter(pk => pk.status === 'won');
+        const lost = total - wonList.length;
+        const won = wonList.length;
+        const hitRate = total > 0 ? (won / total) * 100 : 0;
+        const avgPlayed = total > 0 ? myPicks.reduce((a, x) => a + Number(x.quota), 0) / total : 0;
+        const avgWon = won > 0 ? wonList.reduce((a, x) => a + Number(x.quota), 0) / won : 0;
+        const maxWon = won > 0 ? Math.max(...wonList.map(x => Number(x.quota))) : 0;
+        const deposited = depositedByPlayer[p.id] || 0;
+        return { ...p, total, won, lost, hitRate, avgPlayed, avgWon, maxWon, deposited };
+      });
+
+      playerStats.sort((a, b) => (b.hitRate - a.hitRate) || (b.won - a.won));
+
+      const leaderboardHtml = playerStats.map((ps, idx) => {
+        const medal = idx === 0 && ps.total > 0 ? '🥇' : idx === 1 && ps.total > 0 ? '🥈' : idx === 2 && ps.total > 0 ? '🥉' : `#${idx + 1}`;
+        return `
+          <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/10 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="text-base font-black w-6 text-center text-gray-400">${medal}</span>
+                <div>
+                  <div class="font-bold text-sm text-white">${escapeHtml(ps.name)}</div>
+                  <div class="text-[11px] text-gray-400">
+                    <span class="text-[#78BE20] font-bold">${ps.won} prese</span> · <span class="text-red-400 font-bold">${ps.lost} perse</span> (${ps.total} tot)
+                  </div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="font-black text-lg text-[#78BE20] leading-none">${ps.hitRate.toFixed(0)}%</div>
+                <div class="text-[10px] text-gray-500 mt-0.5">Precisione</div>
+              </div>
+            </div>
+
+            <div class="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+              <div class="h-full rounded-full bg-[#78BE20] transition-all duration-500" style="width: ${ps.hitRate}%"></div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1.5 pt-1 text-center">
+              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+                <div class="text-[9px] text-gray-500 uppercase">Q. Media</div>
+                <div class="text-xs font-bold text-white">${ps.avgPlayed > 0 ? ps.avgPlayed.toFixed(2) : '-'}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+                <div class="text-[9px] text-gray-500 uppercase">Q. Presa</div>
+                <div class="text-xs font-bold text-[#78BE20]">${ps.avgWon > 0 ? ps.avgWon.toFixed(2) : '-'}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+                <div class="text-[9px] text-gray-500 uppercase">Max Presa</div>
+                <div class="text-xs font-bold text-amber-400">${ps.maxWon > 0 ? ps.maxWon.toFixed(2) : '-'}</div>
+              </div>
+              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+                <div class="text-[9px] text-gray-500 uppercase">Versato</div>
+                <div class="text-xs font-bold text-white">${ps.deposited.toFixed(0)} €</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Storico Espandibile Schedine Archiviate
+      const historyAccordionHtml = history.length === 0
+        ? `<div class="text-center py-6 text-xs text-gray-500">Nessuna settimana archiviata ancora. Chiudi la prima settimana dalla tab SCHEDINE.</div>`
+        : history.map(h => {
+            const expanded = !!state.expandedHistoryIds[h.id];
+            return `
+              <div class="rounded-2xl bg-[#121212] border border-white/10 overflow-hidden">
+                <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-3.5 flex items-center justify-between gap-2 hover:bg-white/5 transition">
+                  <div>
+                    <div class="font-bold text-xs text-white">${escapeHtml(h.weekLabel)}</div>
+                    <div class="text-[10px] text-gray-400 mt-0.5">
+                      A: ${h.schedinaA?.won ? '✅ Vinta' : '❌ Persa'} · B: ${h.schedinaB?.won ? '✅ Vinta' : '❌ Persa'} · ${escapeHtml(h.dateStr || '')}
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <span class="font-black text-sm ${(h.totalWin || 0) > 0 ? 'text-[#78BE20]' : 'text-gray-400'}">
+                      ${(h.totalWin || 0) > 0 ? '+' + formatEuro(h.totalWin) : '0,00 €'}
+                    </span>
+                    <span class="text-gray-500 text-xs">${expanded ? '▲' : '▼'}</span>
+                  </div>
+                </button>
+                ${expanded ? `
+                  <div class="px-3.5 pb-3.5 pt-2 border-t border-white/5 space-y-1.5">
+                    ${(h.picks || []).map(pk => `
+                      <div class="flex items-center justify-between text-[11px] py-1 border-b border-white/5 last:border-0">
+                        <div class="min-w-0 pr-2">
+                          <span class="font-bold text-white">${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}</span>
+                          <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
+                        </div>
+                        <span class="font-black text-[#78BE20] shrink-0">${Number(pk.quota).toFixed(2)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+
+      return `
+        <!-- Statistiche Globali -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-3">
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Statistiche Globali Gruppo</h2>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
+              <div class="text-[11px] text-gray-400">Profitto Netto</div>
+              <div class="font-black text-xl mt-0.5 ${netProfit >= 0 ? 'text-[#78BE20]' : 'text-red-400'}">
+                ${netProfit >= 0 ? '+' : ''}${formatEuro(netProfit)}
+              </div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
+              <div class="text-[11px] text-gray-400">ROI Totale</div>
+              <div class="font-black text-xl mt-0.5 ${roi >= 0 ? 'text-[#78BE20]' : 'text-red-400'}">
+                ${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-2 text-center">
+            <div class="p-2 rounded-xl bg-[#121212]">
+              <div class="text-[9px] text-gray-400 uppercase">Settimane</div>
+              <div class="font-black text-sm text-white mt-0.5">${totalWeeks}</div>
+            </div>
+            <div class="p-2 rounded-xl bg-[#121212]">
+              <div class="text-[9px] text-gray-400 uppercase">Win A</div>
+              <div class="font-black text-sm text-[#78BE20] mt-0.5">${winRateA.toFixed(0)}%</div>
+            </div>
+            <div class="p-2 rounded-xl bg-[#121212]">
+              <div class="text-[9px] text-gray-400 uppercase">Win B</div>
+              <div class="font-black text-sm text-[#78BE20] mt-0.5">${winRateB.toFixed(0)}%</div>
+            </div>
+            <div class="p-2 rounded-xl bg-[#121212]">
+              <div class="text-[9px] text-gray-400 uppercase">Hit Match</div>
+              <div class="font-black text-sm text-amber-400 mt-0.5">${globalHitRate.toFixed(0)}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Classifica & Statistiche per Utente -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Statistiche per Utente</h2>
+            <span class="text-[10px] text-gray-500">Include esiti live</span>
+          </div>
+          ${leaderboardHtml}
+        </div>
+
+        <!-- Storico Schedine Archiviate -->
+        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-2.5">
+          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Storico Schedine Archiviate (${history.length})</h2>
+          ${historyAccordionHtml}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 10. UTILITY & TOAST
+    // =========================================================================
+    function getPlayerName(id) {
+      return state.settings.players.find(x => x.id === id)?.name || 'Giocatore';
+    }
+
+    function normalizeMatch(str) {
+      return String(str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    function formatEuro(num) {
+      const n = Number(num) || 0;
+      return n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function escapeJs(str) {
+      return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const el = document.createElement('div');
+      const colors = {
+        success: 'bg-[#78BE20] text-[#121212] font-bold',
+        error: 'bg-red-500 text-white font-bold',
+        warning: 'bg-amber-400 text-[#121212] font-bold',
+        info: 'bg-[#2a2a2a] text-white border border-white/15 font-semibold'
+      };
+      el.className = `px-4 py-3 rounded-2xl text-xs shadow-2xl pointer-events-auto transition-all duration-300 ${colors[type] || colors.info}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-8px)';
+        setTimeout(() => el.remove(), 300);
+      }, 3200);
+    }
+
+    // Avvio App
+    window.addEventListener('DOMContentLoaded', () => {
+      render();
+      initFirebase();
+      fetchLeagueMatches(state.selectedLeague);
+    });
+  </script>
+</body>
+</html>
