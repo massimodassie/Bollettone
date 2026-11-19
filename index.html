@@ -74,6 +74,71 @@
       50% { opacity: 0.4; }
     }
     .animate-pulse-soft { animation: pulseSoft 1.8s infinite; }
+  /* Tema chiaro automatico quando il telefono/browser è impostato su Chiaro */
+    @media (prefers-color-scheme: light) {
+      body {
+        background-color: #f4f6f8 !important;
+        color: #111827 !important;
+      }
+      .sisal-pattern {
+        background-color: #eef2e6 !important;
+        background-image: repeating-linear-gradient(
+          -45deg,
+          rgba(120, 190, 32, 0.08) 0px,
+          rgba(120, 190, 32, 0.08) 8px,
+          transparent 8px,
+          transparent 16px
+        ) !important;
+      }
+      header,
+      nav {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border-color: rgba(0, 0, 0, 0.08) !important;
+      }
+      #app h1,
+      #app h2,
+      #app h3,
+      #app .text-white,
+      #modal-box h3,
+      #modal-box .text-white {
+        color: #111827 !important;
+      }
+      #app .bg-\[\#1E1E1E\],
+      #app .bg-\[\#171717\],
+      #modal-box {
+        background-color: #ffffff !important;
+        border-color: rgba(0, 0, 0, 0.1) !important;
+      }
+      #app .bg-\[\#121212\],
+      #modal-box .bg-\[\#121212\] {
+        background-color: #f3f4f6 !important;
+        border-color: rgba(0, 0, 0, 0.12) !important;
+        color: #111827 !important;
+      }
+      #app input,
+      #app select,
+      #app textarea,
+      #modal-box input,
+      #modal-box select,
+      #modal-box textarea {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-color: rgba(0, 0, 0, 0.18) !important;
+      }
+      #app .text-gray-300,
+      #app .text-gray-400,
+      #modal-box .text-gray-300,
+      #modal-box .text-gray-400 {
+        color: #4b5563 !important;
+      }
+      #app .text-gray-500 {
+        color: #6b7280 !important;
+      }
+      .border-white\/10,
+      .border-white\/5 {
+        border-color: rgba(0, 0, 0, 0.08) !important;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#78BE20] selection:text-black">
@@ -2523,6 +2588,14 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
     }
 
     // Avvio App
+    function syncSystemTheme() {
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.classList.toggle('dark', !prefersLight);
+    }
+    syncSystemTheme();
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', syncSystemTheme);
+    }
     window.addEventListener('DOMContentLoaded', () => {
       render();
       initFirebase();
