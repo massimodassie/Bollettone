@@ -79,7 +79,7 @@
 <body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#78BE20] selection:text-black">
 
   <!-- Contenitore Principale Mobile-First -->
-  <div id="app" class="max-w-lg mx-auto min-h-screen flex flex-col relative pb-24">
+  <div id="app" class="max-w-5xl mx-auto min-h-screen flex flex-col relative pb-24">
 
     <!-- Header Sticky -->
     <header class="sticky top-0 z-30 bg-[#121212]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
@@ -114,7 +114,7 @@
 
     <!-- Barra di Navigazione Fissa in Basso -->
     <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#181818]/95 backdrop-blur-lg border-t border-white/10 safe-bottom">
-      <div class="max-w-lg mx-auto grid grid-cols-4 px-2 pt-1.5">
+      <div class="max-w-5xl mx-auto grid grid-cols-4 px-2 pt-1.5">
         <button onclick="switchTab('gioca')" id="nav-gioca" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
@@ -463,13 +463,15 @@
     // =========================================================================
     // 4. FETCH PARTITE REALI PER CAMPIONATO (ESPN PUBLIC SOCCER API)
     // =========================================================================
-    async function fetchLeagueMatches(leagueCode) {
+   async function fetchLeagueMatches(leagueCode) {
       if (leagueCode === 'custom') {
         state.loadingLeague = false;
         render();
         return;
       }
-      if (state.leagueMatchesCache[leagueCode]) {
+
+      const cacheKey = `${leagueCode}_${state.searchDaysAhead}`;
+      if (state.leagueMatchesCache[cacheKey]) {
         render();
         return;
       }
@@ -478,43 +480,38 @@
       render();
 
       try {
-        const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueCode}/scoreboard`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const events = Array.isArray(data.events) ? data.events : [];
+        const dateRangeStr = formatDateRangeESPN(state.searchDaysAhead);
+        let combined = [];
 
-        const parsed = events.map(ev => {
-          const comp = ev.competitions?.[0];
-          const competitors = comp?.competitors || [];
-          const home = competitors.find(c => c.homeAway === 'home')?.team?.displayName || '';
-          const away = competitors.find(c => c.homeAway === 'away')?.team?.displayName || '';
-          const matchName = (home && away) ? `${home} - ${away}` : (ev.name || 'Partita');
+        if (leagueCode === 'all') {
+          const fastCodes = [
+            'ita.1', 'ita.2', 'eng.1', 'esp.1', 'ger.1', 'fra.1',
+            'uefa.champions', 'uefa.europa', 'uefa.europa.conf', 'fifa.worldq.uefa'
+          ];
+          const targets = LEAGUES.filter(l => fastCodes.includes(l.code));
+          const results = await Promise.all(
+            targets.map(l => fetchSingleLeagueRange(l.code, l.label.replace(/^[^\w]+/, '').trim(), dateRangeStr))
+          );
+          combined = results.flat();
+        } else {
+          const found = LEAGUES.find(l => l.code === leagueCode);
+          const label = found ? found.label.replace(/^[^\w]+/, '').trim() : leagueCode;
+          combined = await fetchSingleLeagueRange(leagueCode, label, dateRangeStr);
+        }
 
-          let formattedDate = '';
-          if (ev.date) {
-            try {
-              const d = new Date(ev.date);
-              const dd = String(d.getDate()).padStart(2, '0');
-              const mm = String(d.getMonth() + 1).padStart(2, '0');
-              const hh = String(d.getHours()).padStart(2, '0');
-              const min = String(d.getMinutes()).padStart(2, '0');
-              formattedDate = `${dd}/${mm} - ${hh}:${min}`;
-            } catch (_) {}
-          }
-
-          return {
-            id: ev.id,
-            partita: matchName,
-            dataOra: formattedDate,
-            status: ev.status?.type?.shortDetail || ''
-          };
+        const seen = new Set();
+        combined = combined.filter(item => {
+          const key = `${normalizeMatch(item.partita)}_${item.dataOra}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
+        combined.sort((a, b) => a.sortTs - b.sortTs);
 
-        state.leagueMatchesCache[leagueCode] = parsed;
+        state.leagueMatchesCache[cacheKey] = combined;
       } catch (err) {
-        console.warn("Impossibile caricare partite ESPN per", leagueCode, err);
-        state.leagueMatchesCache[leagueCode] = [];
+        console.warn("Impossibile caricare partite:", err);
+        state.leagueMatchesCache[cacheKey] = [];
       } finally {
         state.loadingLeague = false;
         render();
