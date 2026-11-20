@@ -1619,7 +1619,25 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
             </div>
             <input id="settings-bonus-toggle" type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} class="w-5 h-5 accent-[#78BE20]" />
           </label>
-
+<div class="p-3.5 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-1.5">
+  <div class="flex items-center justify-between gap-2">
+    <label for="cfg-min-quota" class="text-xs font-extrabold uppercase tracking-wider opacity-80">
+      Quota Minima Puntata
+    </label>
+    <span class="text-[11px] font-bold text-[#78BE20]">Default: 1.40</span>
+  </div>
+  <input
+    id="cfg-min-quota"
+    type="number"
+    step="0.05"
+    min="1.01"
+    value="${Number(state.settings.minQuota || 1.40).toFixed(2)}"
+    class="w-full px-3.5 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-white dark:bg-[#1E1E1E] font-bold text-sm"
+  />
+  <p class="text-[11px] opacity-65">
+    Le puntate con quota inferiore a questo valore vengono segnalate e bloccate.
+  </p>
+</div>
           <button onclick="saveSettingsModal()" class="w-full py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
             Salva Impostazioni
           </button>
@@ -1707,7 +1725,11 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
 
       const weekEl = document.getElementById('settings-week-label');
       if (weekEl && weekEl.value.trim()) state.currentWeek.weekLabel = weekEl.value.trim();
-
+const minQuotaInput = document.getElementById('cfg-min-quota');
+      if (minQuotaInput) {
+        const parsedMinQ = parseFloat(String(minQuotaInput.value).replace(',', '.'));
+        state.settings.minQuota = (!isNaN(parsedMinQ) && parsedMinQ >= 1.01) ? parsedMinQ : 1.40;
+      }
       await saveSettingsToCloud();
       await saveCurrentWeekToCloud();
       closeModal();
