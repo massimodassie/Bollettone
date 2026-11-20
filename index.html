@@ -392,6 +392,7 @@ function getDefaultWeekLabel() {
     // =========================================================================
     // 3. FIREBASE FIRESTORE (SYNC REAL-TIME)
     // =========================================================================
+    let unsubscribers = [];
     async function initFirebase(customConfig = null) {
       const cfg = customConfig || activeFirebaseConfig;
       if (!cfg) {
