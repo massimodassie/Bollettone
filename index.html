@@ -1904,7 +1904,7 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
             </div>
             ${state.aiPreviewMatches.map((m, idx) => {
               const tooLow = Number(m.quota) < minQ;
-               return ``<div class="p-3 rounded-xl bg-[#1E1E1E] border border-white/10 space-y-2">
+              return `<div class="p-3 rounded-xl bg-[#1E1E1E] border border-white/10 space-y-2">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                       <div class="font-bold text-xs text-white truncate">${escapeHtml(m.partita)}</div>
