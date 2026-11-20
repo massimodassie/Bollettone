@@ -1896,8 +1896,9 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
       }).join('');
 
       const activeMarketObj = MARKETS.find(m => m.key === state.form.mercato) || MARKETS[0];
+    const qVal = parseFloat(String(state.form.quota).replace(',', '.'));
       const minQ = Number(state.settings.minQuota) || 1.40;
- const showQuotaWarn = !isNaN(qVal) && qVal > 0 && qVal < minQ;
+      const showQuotaWarn = !isNaN(qVal) && qVal > 0 && qVal < minQ;
       
       // Card di anteprima/conferma risultati estratti dallo Screenshot AI
       let aiPreviewHtml = '';
