@@ -373,6 +373,15 @@
           }
         ]
       },
+      currentWeek: {
+        weekLabel: getDefaultWeekLabel(),
+        picks: [],
+        checkedA: {},
+        checkedB: {}
+      },
+      history: [],
+      transactions: []
+    };
 
     // =========================================================================
     // 3. FIREBASE FIRESTORE (SYNC REAL-TIME)
