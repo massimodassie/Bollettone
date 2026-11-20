@@ -1122,7 +1122,7 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
     window.confirmAIPick = async function(index) {
       const m = state.aiPreviewMatches?.[index];
       if (!m) return;
-      cconst minQ = Number(state.settings.minQuota) || 1.40;
+      const minQ = Number(state.settings.minQuota) || 1.40;
     const quota = parseFloat(String(m.quota).replace(',', '.'));
     if (isNaN(quota) || quota < minQ) {
       showToast(`Quota ${m.quota} inferiore al minimo consentito (${minQ.toFixed(2)})!`, "error");
