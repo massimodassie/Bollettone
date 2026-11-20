@@ -343,29 +343,36 @@
           { id: 'p4', name: 'Andrea' },
           { id: 'p5', name: 'Matteo' }
         ],
-        bonusMultipla: true // +3% su 5 eventi, +6% su 6 eventi
+        bonusMultipla: true, // +3% su 5 eventi, +6% su 6 eventi
+        minQuota: 1.40,
+        activePresetId: 'classic_5_sys6',
+        presets: [
+          {
+            id: 'classic_5_sys6',
+            name: 'Standard: Secca 5 + Sistema 6 (Jolly da A)',
+            dayGroupLabel: 'Giornata / Bollettone Standard',
+            description: 'Schedina A da 5 partite (quota più bassa di ogni giocatore, 5€) + Sistema B a 6 partite con 1 errore (5 quote residue + quota più bassa di A come jolly, 5€).',
+            tickets: [
+              {
+                id: 't_a',
+                title: 'Schedina A · Secca',
+                mode: 'single',
+                stake: 5.00,
+                pickRule: 'lowest_per_player',
+                jollyFromTicketId: null
+              },
+              {
+                id: 't_b',
+                title: 'Schedina B · Sistema 6 (1 errore)',
+                mode: 'system1err',
+                stake: 5.00,
+                pickRule: 'remaining_per_player',
+                jollyFromTicketId: 't_a'
+              }
+            ]
+          }
+        ]
       },
-      currentWeek: {
-        weekLabel: getDefaultWeekLabel(),
-        picks: [],
-        checkedA: {},
-        checkedB: {}
-      },
-      history: [],
-      transactions: []
-    };
-
-    let db = null;
-    let auth = null;
-    let unsubscribers = [];
-
-    function getDefaultWeekLabel() {
-      const now = new Date();
-      const dd = String(now.getDate()).padStart(2, '0');
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const yyyy = now.getFullYear();
-      return `Bollettone del ${dd}/${mm}/${yyyy}`;
-    }
 
     // =========================================================================
     // 3. FIREBASE FIRESTORE (SYNC REAL-TIME)
@@ -428,6 +435,15 @@
             }
             if (typeof data.bonusMultipla === 'boolean') {
               state.settings.bonusMultipla = data.bonusMultipla;
+            }
+            if (typeof data.minQuota === 'number' && data.minQuota >= 1.01) {
+              state.settings.minQuota = data.minQuota;
+            }
+            if (typeof data.activePresetId === 'string') {
+              state.settings.activePresetId = data.activePresetId;
+            }
+            if (Array.isArray(data.presets) && data.presets.length > 0) {
+              state.settings.presets = data.presets;
             }
             if (!state.settings.players.some(p => p.id === state.selectedPlayerId)) {
               state.selectedPlayerId = state.settings.players[0]?.id || '';
@@ -1071,7 +1087,8 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
         const warnEl = document.getElementById('quota-warning');
         const q = parseFloat(String(value).replace(',', '.'));
         if (warnEl) {
-          if (!isNaN(q) && q > 0 && q < 1.40) warnEl.classList.remove('hidden');
+          const minQ = Number(state.settings.minQuota) || 1.40;
+        if (!isNaN(q) && q > 0 && q < minQ) warnEl.classList.remove('hidden');
           else warnEl.classList.add('hidden');
         }
       }
@@ -1096,11 +1113,12 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
     window.confirmAIPick = async function(index) {
       const m = state.aiPreviewMatches?.[index];
       if (!m) return;
-      const quota = parseFloat(String(m.quota).replace(',', '.'));
-      if (isNaN(quota) || quota < 1.40) {
-        showToast(`Quota ${m.quota} inferiore al minimo consentito (1.40)!`, "error");
-        return;
-      }
+      cconst minQ = Number(state.settings.minQuota) || 1.40;
+    const quota = parseFloat(String(m.quota).replace(',', '.'));
+    if (isNaN(quota) || quota < minQ) {
+      showToast(`Quota ${m.quota} inferiore al minimo consentito (${minQ.toFixed(2)})!`, "error");
+      return;
+    }
       const mercatoFull = m.esito ? `${m.mercato}: ${m.esito}` : m.mercato;
       const added = await saveNewPick({
         partita: m.partita,
@@ -1142,10 +1160,11 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
         showToast("Inserisci la Partita e l'Esito della scommessa.", "error");
         return;
       }
-      if (isNaN(quota) || quota < 1.40) {
-        showToast("Bloccato! La quota minima del Bollettone è 1.40.", "error");
-        return;
-      }
+      const minQ = Number(state.settings.minQuota) || 1.40;
+    if (isNaN(quota) || quota < minQ) {
+      showToast(`Bloccato! La quota minima del Bollettone è ${minQ.toFixed(2)}.`, "error");
+      return;
+    }
 
       const ok = await saveNewPick({
         partita,
@@ -1862,9 +1881,9 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
       }).join('');
 
       const activeMarketObj = MARKETS.find(m => m.key === state.form.mercato) || MARKETS[0];
-      const qVal = parseFloat(String(state.form.quota).replace(',', '.'));
-      const showQuotaWarn = !isNaN(qVal) && qVal > 0 && qVal < 1.40;
-
+      const minQ = Number(state.settings.minQuota) || 1.40;
+ const showQuotaWarn = !isNaN(qVal) && qVal > 0 && qVal < minQ;
+      
       // Card di anteprima/conferma risultati estratti dallo Screenshot AI
       let aiPreviewHtml = '';
       if (state.aiPreviewMatches && state.aiPreviewMatches.length > 0) {
@@ -1875,8 +1894,8 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
               <button type="button" onclick="dismissAIPreview()" class="text-xs text-gray-400 hover:text-white">Chiudi</button>
             </div>
             ${state.aiPreviewMatches.map((m, idx) => {
-              const tooLow = Number(m.quota) < 1.40;
-              return `
+              const tooLow = Number(m.quota) < minQ;
+              ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a ${minQ.toFixed(2)} (non consentita)</div>` : ''}
                 <div class="p-3 rounded-xl bg-[#1E1E1E] border border-white/10 space-y-2">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
@@ -1888,7 +1907,7 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
                       ${Number(m.quota).toFixed(2)}
                     </span>
                   </div>
-                  ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a 1.40 (non consentita)</div>` : ''}
+                  ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a ${minQ.toFixed(2)} (non consentita)</div>` : ''}
                   <div class="flex gap-2">
                     <button type="button" onclick="confirmAIPick(${idx})" ${tooLow ? 'disabled' : ''}
                       class="flex-1 py-2 rounded-lg bg-[#78BE20] hover:bg-[#89d428] disabled:opacity-40 text-[#121212] font-extrabold text-[11px] transition">
@@ -2069,8 +2088,8 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
 
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">4. Quota Sisal (min. 1.40)</label>
-                <input type="number" step="0.01" min="1.40" required placeholder="1.75"
+                <label class="block text-[11px] font-semibold text-gray-400 mb-1">4. Quota Sisal (min. ${minQ.toFixed(2)})</label>
+<input type="number" step="0.01" min="${minQ.toFixed(2)}" required placeholder="1.75"
                   value="${escapeHtml(state.form.quota)}"
                   oninput="updateFormField('quota', this.value)"
                   class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-[#78BE20] font-black text-base placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
@@ -2085,8 +2104,8 @@ const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
             </div>
 
             <div id="quota-warning" class="${showQuotaWarn ? '' : 'hidden'} p-2.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 text-xs font-bold">
-              ⛔ Regola Bollettone: non sono ammesse quote inferiori a 1.40!
-            </div>
+  ⛔ Regola Bollettone: non sono ammesse quote inferiori a ${minQ.toFixed(2)}!
+</div>
 
             <button type="submit" class="w-full py-3.5 rounded-xl bg-white hover:bg-gray-200 text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
               + Aggiungi Puntata per ${escapeHtml(getPlayerName(state.selectedPlayerId))}
