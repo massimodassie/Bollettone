@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.0 — Scommesse di Gruppo</title>
+  <title>BOLLETTONE v1.1 — Scommesse di Gruppo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,7 +152,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.0</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.1</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -220,6 +220,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
     // =========================================================================
     // 1. COSTANTI CAMPIONATI, MERCATI SISAL E CONFIGURAZIONE ESTERNA
@@ -300,13 +301,15 @@
     let runtimeGeminiKey = GITHUB_GEMINI_API_KEY;
 
     // =========================================================================
-    // 2. STATO APPLICAZIONE (RELEASE v1.0)
+    // 2. STATO APPLICAZIONE (RELEASE v1.1)
     // =========================================================================
     const state = {
       activeTab: 'gioca',
       user: null,
       cloudConnected: false,
       loadingAI: false,
+      uploadingReceipts: false,
+      checkingReceiptId: null,
       aiPreviewMatches: null,
       selectedPlayerId: getSavedPlayerPref() || 'p1',
       expandedHistoryIds: {},
@@ -344,7 +347,8 @@
         picks: [],
         checkedA: {},
         checkedB: {},
-        receipts: [] // { id, name, dataUrl, addedAt }
+        receipts: [], // { id, name, url, dataUrl, storagePath, addedAt, checkReport }
+        receiptCheckReport: null // Riepilogo confronto quote cedolino vs giocate
       },
       history: [],
       transactions: []
@@ -367,10 +371,11 @@
     }
 
     // =========================================================================
-    // 3. FIREBASE FIRESTORE (SYNC REAL-TIME CON PROTEZIONE CONCORRENZA)
+    // 3. FIREBASE FIRESTORE & STORAGE (SYNC REAL-TIME CON PROTEZIONE CONCORRENZA)
     // =========================================================================
     let db = null;
     let auth = null;
+    let storage = null;
     let unsubscribers = [];
     let isSavingWeek = false;
     let pendingWeekSave = false;
@@ -390,6 +395,12 @@
         const app = initializeApp(cfg, customConfig ? 'custom-' + Date.now() : undefined);
         auth = getAuth(app);
         db = getFirestore(app);
+        try {
+          storage = getStorage(app);
+        } catch (stErr) {
+          console.warn("Firebase Storage non inizializzato:", stErr);
+          storage = null;
+        }
 
         if (!customConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
@@ -413,7 +424,6 @@
       }
     }
 
-    // Unisce in modo sicuro gli array picks evitando di perdere puntate aggiunte da altri colleghi
     function mergePicksSafely(remotePicks = [], localPicks = []) {
       const map = new Map();
       (Array.isArray(remotePicks) ? remotePicks : []).forEach(pk => {
@@ -425,7 +435,6 @@
         if (!existing) {
           map.set(pk.id, { ...pk });
         } else {
-          // Mantieni eventuali aggiornamenti locali più recenti (quota definitiva, status, ecc.)
           map.set(pk.id, { ...existing, ...pk });
         }
       });
@@ -479,7 +488,8 @@
               picks: mergedPicks,
               checkedA: { ...(data.checkedA || {}), ...(isSavingWeek ? state.currentWeek.checkedA : {}) },
               checkedB: { ...(data.checkedB || {}), ...(isSavingWeek ? state.currentWeek.checkedB : {}) },
-              receipts: Array.isArray(data.receipts) ? data.receipts : []
+              receipts: Array.isArray(data.receipts) ? data.receipts : [],
+              receiptCheckReport: data.receiptCheckReport || null
             };
             render();
           } else {
@@ -518,7 +528,6 @@
       }
     }
 
-    // Salvataggio protetto contro le sovrascritture concorrenti tra colleghi
     async function saveCurrentWeekToCloud(forceReplace = false) {
       if (!db || !state.user) return;
       if (isSavingWeek) {
@@ -535,7 +544,8 @@
           picks: Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [],
           checkedA: state.currentWeek.checkedA || {},
           checkedB: state.currentWeek.checkedB || {},
-          receipts: Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : []
+          receipts: Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [],
+          receiptCheckReport: state.currentWeek.receiptCheckReport || null
         };
 
         if (!forceReplace && payload.picks.length > 0) {
@@ -729,7 +739,7 @@
     }
 
     // =========================================================================
-    // 5. GEMINI AI — LETTURA AUTOMATICA SCREENSHOT SISAL
+    // 5. GEMINI AI — LETTURA SCREENSHOT & CHECK QUOTE CEDOLINI
     // =========================================================================
     async function analyzeSisalScreenshot(file) {
       if (!file) return;
@@ -820,6 +830,128 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       }
     }
 
+    // Confronta le quote lette dal cedolino Sisal con le quote attualmente salvate nell'app
+    async function verifyReceiptAgainstPicks(base64Data) {
+      if (!base64Data) return null;
+      try {
+        const prompt = `Analizza questo cedolino/ricevuta di scommesse Sisal.
+Estrai ogni evento/partita giocata sul cedolino con:
+- partita: "Squadra Casa - Squadra Ospite"
+- mercatoEsito: mercato e pronostico visibili sul cedolino
+- quota: quota numerica decimale con punto (es. 1.75)
+Restituisci esclusivamente JSON valido conforme allo schema.`;
+
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: base64Data
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                items: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      partita: { type: "STRING" },
+                      mercatoEsito: { type: "STRING" },
+                      quota: { type: "NUMBER" }
+                    },
+                    required: ["partita", "quota"]
+                  }
+                }
+              },
+              required: ["items"]
+            }
+          }
+        };
+
+        const apiKey = runtimeGeminiKey || "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        const result = await fetchWithBackoff(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) return null;
+
+        const parsed = JSON.parse(text);
+        const items = Array.isArray(parsed.items) ? parsed.items : [];
+        if (items.length === 0) return null;
+
+        const picks = state.currentWeek.picks || [];
+        const matched = [];
+        const mismatches = [];
+        const unmatched = [];
+
+        items.forEach(item => {
+          const normItem = normalizeMatch(item.partita);
+          const itemTokens = String(item.partita || '').toLowerCase().split(/[-–vs]+/).map(s => s.trim().replace(/[^a-z0-9]/g, '')).filter(Boolean);
+
+          const foundPick = picks.find(pk => {
+            const normPk = normalizeMatch(pk.partita);
+            if (normPk === normItem || normPk.includes(normItem) || normItem.includes(normPk)) return true;
+            if (itemTokens.length >= 2) {
+              return itemTokens.every(tok => tok.length >= 3 && normPk.includes(tok));
+            }
+            return false;
+          });
+
+          const rQuota = Number(Number(item.quota).toFixed(2));
+          if (!foundPick) {
+            unmatched.push({
+              partita: item.partita,
+              mercatoEsito: item.mercatoEsito || '',
+              receiptQuota: rQuota
+            });
+            return;
+          }
+
+          const appQuota = Number(Number(foundPick.quota).toFixed(2));
+          if (Math.abs(appQuota - rQuota) > 0.009) {
+            mismatches.push({
+              pickId: foundPick.id,
+              partita: foundPick.partita,
+              playerName: getPlayerName(foundPick.playerId),
+              appQuota,
+              receiptQuota: rQuota
+            });
+          } else {
+            matched.push({
+              pickId: foundPick.id,
+              partita: foundPick.partita,
+              quota: rQuota
+            });
+          }
+        });
+
+        return {
+          checkedAt: Date.now(),
+          totalExtracted: items.length,
+          matched,
+          mismatches,
+          unmatched
+        };
+      } catch (err) {
+        console.warn("Errore verifica quote cedolino:", err);
+        return null;
+      }
+    }
+
     async function fetchWithBackoff(url, options, maxRetries = 4) {
       let delay = 1000;
       for (let i = 0; i < maxRetries; i++) {
@@ -852,8 +984,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       });
     }
 
-    // Comprime/ridimensiona l'immagine del cedolino per tenerla leggera su Firestore
-    function compressReceiptImage(file, maxWidth = 1000, quality = 0.72) {
+    function compressReceiptImage(file, maxWidth = 1200, quality = 0.78) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -1184,7 +1315,6 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         return false;
       }
 
-      // Legge sempre la versione più fresca dal cloud prima di controllare il limite 2/2 e aggiungere
       if (db && state.user) {
         try {
           const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'currentWeek', 'active'));
@@ -1243,7 +1373,6 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       render();
     };
 
-    // Aggiorna la quota definitiva di una partita (es. dopo aver letto il cedolino Sisal)
     window.updatePickFinalQuota = async function(pickId, rawVal) {
       const pk = state.currentWeek.picks.find(p => p.id === pickId);
       if (!pk) return;
@@ -1254,12 +1383,42 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         return;
       }
       pk.quota = Number(parsed.toFixed(2));
+      // Aggiorna eventuale report di mismatch se presente
+      if (state.currentWeek.receiptCheckReport?.mismatches) {
+        state.currentWeek.receiptCheckReport.mismatches = state.currentWeek.receiptCheckReport.mismatches.filter(
+          m => !(m.pickId === pickId && Math.abs(m.receiptQuota - pk.quota) <= 0.009)
+        );
+      }
       await saveCurrentWeekToCloud();
       render();
       showToast(`Quota aggiornata a ${pk.quota.toFixed(2)}`, "success");
     };
 
-    // Passa la schedina allo stato "GIOCATA" su Sisal (o torna in bozza se serve)
+    window.applyAllReceiptQuotas = async function() {
+      const mismatches = state.currentWeek.receiptCheckReport?.mismatches || [];
+      if (mismatches.length === 0) return;
+
+      mismatches.forEach(m => {
+        const pk = (state.currentWeek.picks || []).find(p => p.id === m.pickId);
+        if (pk && m.receiptQuota >= 1.01) {
+          pk.quota = Number(Number(m.receiptQuota).toFixed(2));
+        }
+      });
+
+      if (state.currentWeek.receiptCheckReport) {
+        state.currentWeek.receiptCheckReport.mismatches = [];
+      }
+      await saveCurrentWeekToCloud();
+      render();
+      showToast("Tutte le quote sono state allineate ai cedolini!", "success");
+    };
+
+    window.dismissReceiptReport = async function() {
+      state.currentWeek.receiptCheckReport = null;
+      await saveCurrentWeekToCloud();
+      render();
+    };
+
     window.markTicketAsPlayed = async function() {
       if ((state.currentWeek.picks || []).length === 0) {
         showToast("Aggiungi almeno una partita prima di segnare come giocata.", "warning");
@@ -1284,6 +1443,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       if (inp) inp.click();
     };
 
+    // Carica i cedolini su Firebase Storage (con fallback base64) ed esegue subito il check quote AI
     window.handleReceiptUpload = async function(e) {
       const files = Array.from(e.target.files || []);
       e.target.value = '';
@@ -1293,27 +1453,126 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         state.currentWeek.receipts = [];
       }
 
+      state.uploadingReceipts = true;
+      render();
+
+      const mergedReport = {
+        checkedAt: Date.now(),
+        totalExtracted: 0,
+        matched: [],
+        mismatches: [],
+        unmatched: []
+      };
+
       for (const file of files) {
         try {
-          const dataUrl = await compressReceiptImage(file);
+          const compressedDataUrl = await compressReceiptImage(file);
+          const base64Only = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
+          const receiptId = 'rc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+          const path = `artifacts/${appId}/receipts/${receiptId}.jpg`;
+
+          let downloadUrl = '';
+          let savedStoragePath = '';
+
+          if (storage && state.user) {
+            try {
+              const sRef = storageRef(storage, path);
+              await uploadString(sRef, compressedDataUrl, 'data_url');
+              downloadUrl = await getDownloadURL(sRef);
+              savedStoragePath = path;
+            } catch (stErr) {
+              console.warn("Upload su Firebase Storage fallito, uso fallback locale:", stErr);
+            }
+          }
+
           state.currentWeek.receipts.push({
-            id: 'rc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            id: receiptId,
             name: file.name || 'Cedolino Sisal',
-            dataUrl,
+            url: downloadUrl || '',
+            dataUrl: downloadUrl ? '' : compressedDataUrl,
+            storagePath: savedStoragePath,
             addedAt: Date.now()
           });
+
+          // Esegui il check quote sul cedolino appena caricato
+          const report = await verifyReceiptAgainstPicks(base64Only);
+          if (report) {
+            mergedReport.totalExtracted += report.totalExtracted;
+            mergedReport.matched.push(...report.matched);
+            mergedReport.mismatches.push(...report.mismatches);
+            mergedReport.unmatched.push(...report.unmatched);
+          }
         } catch (err) {
           console.error("Errore caricamento cedolino:", err);
           showToast("Impossibile allegare un cedolino.", "error");
         }
       }
 
+      if (mergedReport.totalExtracted > 0) {
+        state.currentWeek.receiptCheckReport = mergedReport;
+      }
+
+      state.uploadingReceipts = false;
       await saveCurrentWeekToCloud();
       render();
-      showToast("Cedolino allegato alla schedina!", "success");
+
+      if (mergedReport.mismatches.length > 0) {
+        showToast(`Cedolino caricato! Trovate ${mergedReport.mismatches.length} quote diverse da allineare.`, "warning");
+      } else if (mergedReport.totalExtracted > 0) {
+        showToast("Cedolino caricato e tutte le quote risultano allineate!", "success");
+      } else {
+        showToast("Cedolino allegato alla schedina!", "success");
+      }
+    };
+
+    // Permette di rilanciare il check quote anche su un cedolino già caricato in precedenza
+    window.recheckExistingReceipt = async function(receiptId) {
+      const rc = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
+      if (!rc) return;
+
+      state.checkingReceiptId = receiptId;
+      render();
+
+      try {
+        let base64Only = '';
+        if (rc.dataUrl) {
+          base64Only = rc.dataUrl.includes(',') ? rc.dataUrl.split(',')[1] : rc.dataUrl;
+        } else if (rc.url) {
+          const resp = await fetch(rc.url);
+          const blob = await resp.blob();
+          base64Only = await fileToBase64(blob);
+        }
+
+        const report = await verifyReceiptAgainstPicks(base64Only);
+        if (report) {
+          state.currentWeek.receiptCheckReport = report;
+          await saveCurrentWeekToCloud();
+          if (report.mismatches.length > 0) {
+            showToast(`Verifica completata: ${report.mismatches.length} quote diverse trovate.`, "warning");
+          } else {
+            showToast("Verifica completata: tutte le quote coincidono!", "success");
+          }
+        } else {
+          showToast("Impossibile leggere le quote da questo cedolino.", "warning");
+        }
+      } catch (err) {
+        console.error("Errore ri-verifica cedolino:", err);
+        showToast("Errore durante il controllo del cedolino.", "error");
+      } finally {
+        state.checkingReceiptId = null;
+        render();
+      }
     };
 
     window.deleteReceipt = async function(receiptId) {
+      const target = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
+      if (target?.storagePath && storage) {
+        try {
+          await deleteObject(storageRef(storage, target.storagePath));
+        } catch (err) {
+          console.warn("File non eliminato da Storage:", err);
+        }
+      }
       state.currentWeek.receipts = (state.currentWeek.receipts || []).filter(r => r.id !== receiptId);
       await saveCurrentWeekToCloud(true);
       render();
@@ -1323,19 +1582,25 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
     window.openReceiptPreview = function(receiptId) {
       const rc = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
       if (!rc) return;
+      const imgSrc = rc.url || rc.dataUrl;
       openModal(`
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-sm text-white truncate">${escapeHtml(rc.name)}</h3>
-            <p class="text-[11px] text-gray-400">Cedolino Sisal allegato</p>
+            <p class="text-[11px] text-gray-400">${rc.url ? 'Salvato su Firebase Storage' : 'Cedolino allegato'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 overflow-y-auto flex flex-col items-center gap-3">
-          <img src="${rc.dataUrl}" alt="${escapeHtml(rc.name)}" class="max-h-[65vh] w-auto rounded-2xl border border-white/10 object-contain" />
-          <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="w-full py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
-            Elimina cedolino
-          </button>
+          <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="max-h-[60vh] w-auto rounded-2xl border border-white/10 object-contain" />
+          <div class="grid grid-cols-2 gap-2 w-full">
+            <button onclick="closeModal(); recheckExistingReceipt('${rc.id}');" class="py-2.5 rounded-xl bg-[#78BE20]/20 text-[#78BE20] font-bold text-xs">
+              🔍 Verifica quote AI
+            </button>
+            <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
+              Elimina cedolino
+            </button>
+          </div>
         </div>
       `);
     };
@@ -1363,7 +1628,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       const calc = computeTickets();
       const isPlayed = state.currentWeek.status === 'played';
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.0 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
+      lines.push(`⚽ *BOLLETTONE v1.1 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -1483,7 +1748,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         archivedAt: now,
         dateStr,
         picks: state.currentWeek.picks,
-        receiptsCount: (state.currentWeek.receipts || []).length,
+        receipts: (state.currentWeek.receipts || []).map(r => ({ id: r.id, name: r.name, url: r.url || '' })),
         schedinaA: {
           quotaTot: Number(calc.ticketA.quotaTot.toFixed(2)),
           potentialWin: Number(calc.ticketA.potentialWin.toFixed(2)),
@@ -1529,7 +1794,8 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         picks: [],
         checkedA: {},
         checkedB: {},
-        receipts: []
+        receipts: [],
+        receiptCheckReport: null
       };
       await saveCurrentWeekToCloud(true);
       closeModal();
@@ -1680,7 +1946,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.0</p>
+            <p class="text-[11px] text-gray-400">Release v1.1 · Firestore + Storage</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -1830,6 +2096,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       state.currentWeek.checkedA = {};
       state.currentWeek.checkedB = {};
       state.currentWeek.receipts = [];
+      state.currentWeek.receiptCheckReport = null;
       await saveCurrentWeekToCloud(true);
       closeModal();
       render();
@@ -2180,7 +2447,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 2: SCHEDINE (CON STATO "GIOCATA", CEDOLINI, QUOTE DEFINITIVE & CHIUSURA) ---
+    // --- TAB 2: SCHEDINE (STATO "GIOCATA", STORAGE CEDOLINI, CHECK QUOTE & CHIUSURA) ---
     function renderSchedineTab(calc) {
       if (state.currentWeek.picks.length === 0) {
         return `
@@ -2195,11 +2462,17 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
 
       const isPlayed = state.currentWeek.status === 'played';
       const receipts = Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [];
+      const report = state.currentWeek.receiptCheckReport;
+      const mismatchMap = {};
+      if (report && Array.isArray(report.mismatches)) {
+        report.mismatches.forEach(m => { mismatchMap[m.pickId] = m; });
+      }
 
       const renderTicketRow = (pk, ticketType) => {
         const isChecked = !!(state.currentWeek[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
+        const mm = mismatchMap[pk.id];
         return `
-          <div class="p-3.5 border-b border-white/5 last:border-0 transition ${isChecked ? 'bg-[#78BE20]/5' : ''}">
+          <div class="p-3.5 border-b border-white/5 last:border-0 transition ${mm ? 'bg-amber-500/10' : isChecked ? 'bg-[#78BE20]/5' : ''}">
             <div class="flex items-start gap-3">
               <button onclick="toggleCheckSisal('${ticketType}', '${pk.id}')" title="Spunta quando inserita su Sisal"
                 class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
@@ -2218,13 +2491,25 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
                     <input type="number" step="0.01" min="1.01" value="${Number(pk.quota).toFixed(2)}"
                       title="Quota definitiva (modifica dopo lettura cedolino)"
                       onchange="updatePickFinalQuota('${pk.id}', this.value)"
-                      class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border border-white/15 text-[#78BE20] font-black text-xs text-right focus:outline-none focus:border-[#78BE20]" />
+                      class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#78BE20]'} font-black text-xs text-right focus:outline-none focus:border-[#78BE20]" />
                   </div>
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
                   <span class="text-xs text-gray-400 truncate">${escapeHtml(pk.mercato)}</span>
                   <span class="text-[10px] text-gray-500 shrink-0">${escapeHtml(pk.dataOra || '')}</span>
                 </div>
+
+                ${mm ? `
+                  <div class="mt-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-2">
+                    <span class="text-[11px] text-amber-300 font-semibold">
+                      ⚠️ Cedolino: <strong>${mm.receiptQuota.toFixed(2)}</strong> (in app: ${mm.appQuota.toFixed(2)})
+                    </span>
+                    <button type="button" onclick="updatePickFinalQuota('${pk.id}', '${mm.receiptQuota}')"
+                      class="px-2 py-1 rounded-md bg-amber-400 text-[#121212] font-extrabold text-[10px] shrink-0">
+                      Allinea a ${mm.receiptQuota.toFixed(2)}
+                    </button>
+                  </div>
+                ` : ''}
 
                 <div class="flex items-center justify-between gap-2 mt-2.5">
                   <div class="flex items-center gap-1.5 min-w-0">
@@ -2264,19 +2549,75 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
           ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
           : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Sistema 1 errore</span>`;
 
-      const receiptsHtml = receipts.length === 0
-        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora. Allega la foto/ricevuta Sisal con le quote definitive.</div>`
-        : `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-            ${receipts.map(rc => `
-              <div class="relative group rounded-xl overflow-hidden border border-white/10 bg-[#121212]">
-                <button type="button" onclick="openReceiptPreview('${rc.id}')" class="block w-full text-left">
-                  <img src="${rc.dataUrl}" alt="${escapeHtml(rc.name)}" class="w-full h-24 object-cover" />
-                  <div class="px-2 py-1 text-[10px] text-gray-300 truncate">${escapeHtml(rc.name)}</div>
-                </button>
-                <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
-                  class="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 text-red-400 hover:text-white text-xs font-bold flex items-center justify-center">✕</button>
+      // Box Report Check Quote Cedolini vs App
+      let checkReportHtml = '';
+      if (report) {
+        const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
+        const hasUnmatched = Array.isArray(report.unmatched) && report.unmatched.length > 0;
+        const matchedCount = Array.isArray(report.matched) ? report.matched.length : 0;
+
+        checkReportHtml = `
+          <div class="p-3 rounded-2xl border ${hasMismatches ? 'bg-amber-500/10 border-amber-500/40' : 'bg-[#78BE20]/10 border-[#78BE20]/35'} space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-extrabold ${hasMismatches ? 'text-amber-300' : 'text-[#78BE20]'}">
+                ${hasMismatches ? `⚠️ Check Quote: ${report.mismatches.length} differenz${report.mismatches.length === 1 ? 'a' : 'e'} su cedolino` : `✅ Check Quote: tutte allineate (${matchedCount} OK)`}
+              </span>
+              <button type="button" onclick="dismissReceiptReport()" class="text-[11px] text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            ${hasMismatches ? `
+              <div class="space-y-1.5">
+                ${report.mismatches.map(m => `
+                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/30 text-[11px]">
+                    <div class="min-w-0">
+                      <div class="font-bold text-white truncate">${escapeHtml(m.partita)}</div>
+                      <div class="text-gray-400">App: <span class="line-through">${m.appQuota.toFixed(2)}</span> → Cedolino: <strong class="text-amber-300">${m.receiptQuota.toFixed(2)}</strong></div>
+                    </div>
+                    <button type="button" onclick="updatePickFinalQuota('${m.pickId}', '${m.receiptQuota}')"
+                      class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-[10px] shrink-0">
+                      Allinea
+                    </button>
+                  </div>
+                `).join('')}
               </div>
-            `).join('')}
+              <button type="button" onclick="applyAllReceiptQuotas()"
+                class="w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#121212] font-extrabold text-xs transition">
+                Allinea tutte le quote ai cedolini (${report.mismatches.length})
+              </button>
+            ` : ''}
+
+            ${hasUnmatched ? `
+              <div class="text-[10px] text-gray-400 pt-1 border-t border-white/10">
+                Non abbinate automaticamente: ${report.unmatched.map(u => `${escapeHtml(u.partita)} (@${u.receiptQuota.toFixed(2)})`).join(', ')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+
+      const receiptsHtml = receipts.length === 0
+        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora. Allega la foto/ricevuta Sisal per salvarla su Storage e verificare le quote.</div>`
+        : `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+            ${receipts.map(rc => {
+              const imgSrc = rc.url || rc.dataUrl;
+              const isCheckingThis = state.checkingReceiptId === rc.id;
+              return `
+                <div class="relative rounded-xl overflow-hidden border border-white/10 bg-[#121212] flex flex-col">
+                  <button type="button" onclick="openReceiptPreview('${rc.id}')" class="block w-full text-left">
+                    <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="w-full h-24 object-cover" />
+                    <div class="px-2 pt-1.5 text-[10px] text-gray-300 truncate">${escapeHtml(rc.name)}</div>
+                  </button>
+                  <div class="p-1.5 flex items-center justify-between gap-1">
+                    <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis ? 'disabled' : ''}
+                      class="flex-1 py-1 rounded-lg bg-[#78BE20]/15 hover:bg-[#78BE20]/25 text-[#78BE20] font-bold text-[10px] transition">
+                      ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
+                    </button>
+                    <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
+                      class="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-[10px] font-bold">✕</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
           </div>`;
 
       return `
@@ -2296,7 +2637,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
           `}
         </div>
 
-        <!-- Banner Stato Schedina: Bozza vs Giocata + Cedolini & Quote Definitive -->
+        <!-- Banner Stato Schedina: Bozza vs Giocata + Cedolini & Check Quote -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${isPlayed ? 'border-[#78BE20]/50' : 'border-white/10'} p-4 space-y-3 shadow-lg">
           <div class="flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
@@ -2318,7 +2659,6 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
             ` : ''}
           </div>
 
-          <!-- Report Semplice Schedina Giocata -->
           <div class="grid grid-cols-3 gap-2 p-3 rounded-2xl bg-[#121212] border border-white/5 text-center">
             <div>
               <div class="text-[10px] text-gray-400">Puntata Totale</div>
@@ -2334,20 +2674,22 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
             </div>
           </div>
 
-          <!-- Caricamento Cedolini & Quote Definitive -->
           <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
             <div class="flex items-center justify-between gap-2">
               <div>
-                <div class="text-xs font-bold text-white">Cedolini & Quote Definitive</div>
-                <div class="text-[10px] text-gray-400">Carica le ricevute Sisal e aggiorna le quote sulle righe qui sotto prima della verifica finale.</div>
+                <div class="text-xs font-bold text-white">Cedolini Sisal (Storage + Check Quote AI)</div>
+                <div class="text-[10px] text-gray-400">Carica i cedolini: li salviamo su Storage e verifichiamo in automatico eventuali variazioni di quota.</div>
               </div>
               <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
-              <button type="button" onclick="triggerReceiptUpload()" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-[11px] shrink-0 transition">
-                + Carica Cedolino
+              <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
+                class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition">
+                ${state.uploadingReceipts ? 'Caricamento...' : '+ Carica Cedolino'}
               </button>
             </div>
             ${receiptsHtml}
           </div>
+
+          ${checkReportHtml}
 
           ${isPlayed ? `
             <button onclick="openArchiveModal()" class="w-full py-2.5 rounded-xl bg-[#78BE20]/15 hover:bg-[#78BE20]/25 border border-[#78BE20]/40 text-[#78BE20] font-extrabold text-xs transition">
