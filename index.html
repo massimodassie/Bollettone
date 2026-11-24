@@ -2102,7 +2102,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (isA) batch.closedA = closedObj;
       else batch.closedB = closedObj;
 
-      // Salva lo snapshot completo della puntata includendo sia le partite di A che quelle di B
       const picksA = calc.ticketA.picks.map(p => ({ ...p }));
       const picksB = calc.ticketB.picks.map(p => ({ ...p }));
 
@@ -3340,116 +3339,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    const renderHistoryPickRows = (list = []) => {
-    if (!Array.isArray(list) || list.length === 0) {
-      return `<div class="text-[11px] text-gray-500 py-1">Nessuna partita registrata.</div>`;
-    }
-    return list.map(pk => `
-      <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
-        <div class="min-w-0 pr-2">
-          <div class="font-bold text-white truncate">
-            ${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}
-            ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[9px] font-bold">⭐ Jolly</span>` : ''}
-          </div>
-          <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
-        </div>
-        <span class="font-black text-[#78BE20] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
-      </div>
-    `).join('');
-  };
-function renderPuntateStoricoTab() {
-  const history = state.history || [];
-  if (history.length === 0) {
-    return `<div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10"><div class="text-4xl mb-3">🗂️</div><h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2><p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p></div>`;
-  }
-  return `
-    <div class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Storico Puntate Chiuse (${history.length})</h2>
-        <span class="text-[10px] text-gray-500">Tocca per dettaglio schedine</span>
-      </div>
+    function renderPuntateStoricoTab() {
+      const history = state.history || [];
 
-      ${history.map(h => {
-        const expanded = !!state.expandedHistoryIds[h.id];
-        const wonAmt = Number(h.totalWin) || 0;
-        const cleanTitle = stripDemoText(h.weekLabel);
-
-        const recomputed = computeTickets(h.picks || []);
-        const listA = Array.isArray(h.picksA) && h.picksA.length > 0 ? h.picksA : recomputed.ticketA.picks;
-        const listB = Array.isArray(h.picksB) && h.picksB.length > 0 ? h.picksB : recomputed.ticketB.picks;
-
-        const showA = !h.ticketType || h.ticketType === 'A';
-        const showB = !h.ticketType || h.ticketType === 'B';
-
-        const infoA = h.schedinaA || recomputed.ticketA;
-        const infoB = h.schedinaB || recomputed.ticketB;
-
-        const wonA = typeof infoA.won === 'boolean' ? infoA.won : infoA.status === 'won';
-        const winValA = Number(infoA.actualWin ?? (wonA ? infoA.potentialWin : 0) ?? 0);
-
-        const wonB = typeof infoB.won === 'boolean' ? infoB.won : infoB.status === 'won';
-        const winValB = Number(infoB.actualWin ?? (wonB ? infoB.maxWin : 0) ?? 0);
-
+      if (history.length === 0) {
         return `
-          <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-lg">
-            <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
-              <div class="min-w-0">
-                <div class="font-black text-sm text-white truncate">${escapeHtml(cleanTitle)}</div>
-                <div class="text-[11px] text-gray-400 mt-0.5">
-                  ${wonAmt > 0 ? '✅ Schedina Vincente' : '❌ Schedina Perdente'} · ${escapeHtml(h.dateStr || '')}
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <span class="px-2.5 py-1 rounded-xl font-black text-xs ${wonAmt > 0 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-red-500/15 text-red-400'}">
-                  ${wonAmt > 0 ? '+' + formatEuro(wonAmt) : '0,00 €'}
-                </span>
-                <span class="text-gray-500 text-xs">${expanded ? '▲' : '▼'}</span>
-              </div>
-            </button>
-
-            ${expanded ? `
-              <div class="px-4 pb-4 pt-3 border-t border-white/10 space-y-3 bg-[#171717]/70">
-                ${showA ? `
-                  <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
-                    <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
-                      <div>
-                        <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina A · Secca</div>
-                        <div class="text-xs font-bold text-white">Quota tot. ${Number(infoA.quotaTot || 0).toFixed(2)}</div>
-                      </div>
-                      <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                        wonA ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
-                      }">
-                        ${wonA ? `VINCENTE (+${formatEuro(winValA)})` : 'PERDENTE'}
-                      </span>
-                    </div>
-                    ${renderHistoryPickRows(listA)}
-                  </div>
-                ` : ''}
-
-                ${showB ? `
-                  <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
-                    <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
-                      <div>
-                        <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina B · Sistema</div>
-                        <div class="text-xs font-bold text-white">${escapeHtml(infoB.hitsLabel || 'Sistema 6 partite')}</div>
-                      </div>
-                      <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                        wonB ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
-                      }">
-                        ${wonB ? `VINCENTE (+${formatEuro(winValB)})` : 'PERDENTE'}
-                      </span>
-                    </div>
-                    ${renderHistoryPickRows(listB)}
-                  </div>
-                ` : ''}
-              </div>
-            ` : ''}
+          <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
+            <div class="text-4xl mb-3">🗂️</div>
+            <h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2>
+            <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p>
           </div>
         `;
-      }).join('')}
-    </div>
-  `;
-}
+      }
 
       const renderHistoryPickRows = (list = []) => {
         if (!Array.isArray(list) || list.length === 0) {
@@ -3469,11 +3370,6 @@ function renderPuntateStoricoTab() {
         `).join('');
       };
 
-  function renderPuntateStoricoTab() {
-  const history = state.history || [];
-  if (history.length === 0) {
-    return `<div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10"><div class="text-4xl mb-3">🗂️</div><h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2><p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p></div>`;
-  }
       return `
         <div class="space-y-3">
           <div class="flex items-center justify-between">
@@ -3486,21 +3382,22 @@ function renderPuntateStoricoTab() {
             const wonAmt = Number(h.totalWin) || 0;
             const cleanTitle = stripDemoText(h.weekLabel);
 
-            const hasA = !!h.schedinaA;
-            const hasB = !!h.schedinaB;
-            const listA = Array.isArray(h.picksA) ? h.picksA : (hasA ? (h.picks || []) : []);
-            const listB = Array.isArray(h.picksB) ? h.picksB : (hasB ? (h.picks || []) : []);
-const recomputed = computeTickets(h.picks || []);
-  const finalListA = listA.length > 0 ? listA : recomputed.ticketA.picks;
-  const finalListB = listB.length > 0 ? listB : recomputed.ticketB.picks;
-  const showA = !h.ticketType || h.ticketType === 'A';
-  const showB = !h.ticketType || h.ticketType === 'B';
-  const infoA = h.schedinaA || recomputed.ticketA;
-  const infoB = h.schedinaB || recomputed.ticketB;
-  const wonA = typeof infoA.won === 'boolean' ? infoA.won : infoA.status === 'won';
-  const winValA = Number(infoA.actualWin ?? (wonA ? infoA.potentialWin : 0) ?? 0);
-  const wonB = typeof infoB.won === 'boolean' ? infoB.won : infoB.status === 'won';
-  const winValB = Number(infoB.actualWin ?? (wonB ? infoB.maxWin : 0) ?? 0);
+            const recomputed = computeTickets(h.picks || []);
+            const finalListA = Array.isArray(h.picksA) && h.picksA.length > 0 ? h.picksA : recomputed.ticketA.picks;
+            const finalListB = Array.isArray(h.picksB) && h.picksB.length > 0 ? h.picksB : recomputed.ticketB.picks;
+
+            const showA = !h.ticketType || h.ticketType === 'A';
+            const showB = !h.ticketType || h.ticketType === 'B';
+
+            const infoA = h.schedinaA || recomputed.ticketA;
+            const infoB = h.schedinaB || recomputed.ticketB;
+
+            const wonA = typeof infoA.won === 'boolean' ? infoA.won : infoA.status === 'won';
+            const winValA = Number(infoA.actualWin ?? (wonA ? infoA.potentialWin : 0) ?? 0);
+
+            const wonB = typeof infoB.won === 'boolean' ? infoB.won : infoB.status === 'won';
+            const winValB = Number(infoB.actualWin ?? (wonB ? infoB.maxWin : 0) ?? 0);
+
             return `
               <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-lg">
                 <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
@@ -3520,37 +3417,37 @@ const recomputed = computeTickets(h.picks || []);
 
                 ${expanded ? `
                   <div class="px-4 pb-4 pt-3 border-t border-white/10 space-y-3 bg-[#171717]/70">
-                    ${hasA ? `
+                    ${showA ? `
                       <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
                             <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina A · Secca</div>
-                            <div class="text-xs font-bold text-white">Quota tot. ${Number(h.schedinaA.quotaTot || 0).toFixed(2)}</div>
+                            <div class="text-xs font-bold text-white">Quota tot. ${Number(infoA.quotaTot || 0).toFixed(2)}</div>
                           </div>
                           <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                            h.schedinaA.won ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                            wonA ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
                           }">
-                            ${h.schedinaA.won ? `VINCENTE (+${formatEuro(h.schedinaA.actualWin)})` : 'PERDENTE'}
+                            ${wonA ? `VINCENTE (+${formatEuro(winValA)})` : 'PERDENTE'}
                           </span>
                         </div>
-                        ${renderHistoryPickRows(listA)}
+                        ${renderHistoryPickRows(finalListA)}
                       </div>
                     ` : ''}
 
-                    ${hasB ? `
+                    ${showB ? `
                       <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
                             <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina B · Sistema</div>
-                            <div class="text-xs font-bold text-white">${escapeHtml(h.schedinaB.hitsLabel || 'Sistema 6 partite')}</div>
+                            <div class="text-xs font-bold text-white">${escapeHtml(infoB.hitsLabel || 'Sistema 6 partite')}</div>
                           </div>
                           <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                            h.schedinaB.won ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                            wonB ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
                           }">
-                            ${h.schedinaB.won ? `VINCENTE (+${formatEuro(h.schedinaB.actualWin)})` : 'PERDENTE'}
+                            ${wonB ? `VINCENTE (+${formatEuro(winValB)})` : 'PERDENTE'}
                           </span>
                         </div>
-                        ${renderHistoryPickRows(listB)}
+                        ${renderHistoryPickRows(finalListB)}
                       </div>
                     ` : ''}
                   </div>
