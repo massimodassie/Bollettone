@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.8 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v1.9 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -154,7 +154,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 flex-wrap">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.8</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.9</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -1866,6 +1866,30 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return true;
     }
 
+    // Modifica quota al volo dal pannello GIOCA (solo Admin) con ricalcolo automatico
+    window.updateDraftPickQuota = async function(pickId, rawVal) {
+      if (!isAdmin()) {
+        showToast("Solo l'Admin può modificare le quote dal pannello gioco.", "warning");
+        render();
+        return;
+      }
+      const pk = (state.currentWeek.picks || []).find(p => p.id === pickId);
+      if (!pk) return;
+
+      const parsed = parseFloat(String(rawVal).replace(',', '.'));
+      const minQ = Number(state.settings.minQuota) || 1.40;
+      if (isNaN(parsed) || parsed < minQ) {
+        showToast(`Quota non valida: il minimo consentito è ${minQ.toFixed(2)}.`, "error");
+        render();
+        return;
+      }
+
+      pk.quota = Number(parsed.toFixed(2));
+      await saveCurrentWeekToCloud(true);
+      render();
+      showToast(`Quota aggiornata a ${pk.quota.toFixed(2)} — Schedine ricalcolate!`, "success");
+    };
+
     window.deletePick = async function(pickId) {
       const target = (state.currentWeek.picks || []).find(p => p.id === pickId);
       if (!canModifyPick(target)) {
@@ -2302,7 +2326,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(batch.picks);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.8 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v1.9 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2734,7 +2758,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.8 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-[11px] text-gray-400">Release v1.9 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3060,9 +3084,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <div class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(pk.mercato)}</div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <div class="px-2.5 py-1.5 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] font-black text-sm">
-                    ${Number(pk.quota).toFixed(2)}
-                  </div>
+                  ${adminMode ? `
+                    <div class="flex items-center gap-1 px-2 py-1 rounded-xl bg-[#121212] border border-[#C8102E]/40">
+                      <span class="text-[10px] text-gray-500 font-bold">@</span>
+                      <input type="number" step="0.01" min="${minQ.toFixed(2)}" value="${Number(pk.quota).toFixed(2)}"
+                        title="Modifica quota al volo (ricalcola schedine)"
+                        onchange="updateDraftPickQuota('${pk.id}', this.value)"
+                        class="w-14 bg-transparent text-[#FF6B7D] font-black text-sm text-right focus:outline-none" />
+                    </div>
+                  ` : `
+                    <div class="px-2.5 py-1.5 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] font-black text-sm">
+                      ${Number(pk.quota).toFixed(2)}
+                    </div>
+                  `}
                   ${allowDelete ? `
                     <button onclick="deletePick('${pk.id}')" aria-label="Elimina" class="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3250,7 +3284,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         ` : ''}
 
         <div class="space-y-2.5">
-          <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Giocate Nuova Giornata (${picks.length})</h2>
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Giocate Nuova Giornata (${picks.length})</h2>
+            ${adminMode && picks.length > 0 ? `<span class="text-[10px] text-[#FF8A98] font-semibold">Tocca quota @ per modificare al volo</span>` : ''}
+          </div>
           ${picksListHtml}
         </div>
       `;
@@ -3322,6 +3359,51 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         </div>
       `;
+
+      let checkReportHtml = '';
+      if (report && adminMode) {
+        const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
+        const hasUnmatched = Array.isArray(report.unmatched) && report.unmatched.length > 0;
+        const matchedCount = Array.isArray(report.matched) ? report.matched.length : 0;
+
+        checkReportHtml = `
+          <div class="p-3 rounded-2xl border ${hasMismatches ? 'bg-amber-500/10 border-amber-500/40' : 'bg-[#22C55E]/10 border-[#22C55E]/35'} space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-extrabold ${hasMismatches ? 'text-amber-300' : 'text-[#4ADE80]'}">
+                ${hasMismatches ? `⚠️ Check Quote: ${report.mismatches.length} differenz${report.mismatches.length === 1 ? 'a' : 'e'} su cedolino` : `✅ Check Quote: tutte allineate (${matchedCount} OK)`}
+              </span>
+              <button type="button" onclick="dismissReceiptReport()" class="text-[11px] text-gray-400 hover:text-white">✕</button>
+            </div>
+
+            ${hasMismatches ? `
+              <div class="space-y-1.5">
+                ${report.mismatches.map(m => `
+                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-black/30 text-[11px]">
+                    <div class="min-w-0">
+                      <div class="font-bold text-white truncate">${escapeHtml(m.partita)}</div>
+                      <div class="text-gray-400">App: <span class="line-through">${m.appQuota.toFixed(2)}</span> → Cedolino: <strong class="text-amber-300">${m.receiptQuota.toFixed(2)}</strong></div>
+                    </div>
+                    <button type="button" onclick="updatePickFinalQuota('${m.pickId}', '${m.receiptQuota}')"
+                      class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-[10px] shrink-0">
+                      Allinea
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+              <button type="button" onclick="applyAllReceiptQuotas()"
+                class="w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#121212] font-extrabold text-xs transition">
+                Allinea tutte le quote ai cedolini (${report.mismatches.length})
+              </button>
+            ` : ''}
+
+            ${hasUnmatched ? `
+              <div class="text-[10px] text-gray-400 pt-1 border-t border-white/10">
+                Non abbinate automaticamente: ${report.unmatched.map(u => `${escapeHtml(u.partita)} (@${u.receiptQuota.toFixed(2)})`).join(', ')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
 
       const renderTicketRow = (pk, ticketType, isTicketClosed) => {
         const isChecked = !!(currentBatch[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
@@ -3510,8 +3592,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <div>
-                  <div class="text-xs font-bold text-white">Cedolini Sisal</div>
-                  <div class="text-[10px] text-gray-400">Ricevute allegate alla puntata.</div>
+                  <div class="text-xs font-bold text-white">Cedolini Sisal & Check Quote</div>
+                  <div class="text-[10px] text-gray-400">Ricevute allegate e verifica quote del cedolino.</div>
                 </div>
                 ${adminMode ? `
                   <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
@@ -3523,6 +3605,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
               ${receiptsHtml}
             </div>
+
+            ${checkReportHtml}
           </section>
         ` : ''}
 
