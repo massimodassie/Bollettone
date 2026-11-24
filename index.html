@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.1 — Scommesse di Gruppo</title>
+  <title>BOLLETTONE v1.2 — Scommesse di Gruppo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,7 +152,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.1</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.2</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -301,16 +301,18 @@
     let runtimeGeminiKey = GITHUB_GEMINI_API_KEY;
 
     // =========================================================================
-    // 2. STATO APPLICAZIONE (RELEASE v1.1)
+    // 2. STATO APPLICAZIONE (RELEASE v1.2)
     // =========================================================================
     const state = {
       activeTab: 'gioca',
       user: null,
       cloudConnected: false,
       loadingAI: false,
+      loadingResultAI: null, // 'A' | 'B' | null
       uploadingReceipts: false,
       checkingReceiptId: null,
       aiPreviewMatches: null,
+      aiResultPreview: null, // { ticketType: 'A'|'B', items: [{ pickId, partita, status, reason }] }
       selectedPlayerId: getSavedPlayerPref() || 'p1',
       expandedHistoryIds: {},
       searchDaysAhead: 14,
@@ -342,13 +344,11 @@
       },
       currentWeek: {
         weekLabel: getDefaultWeekLabel(),
-        status: 'draft', // 'draft' | 'played'
-        playedAt: null,
-        picks: [],
-        checkedA: {},
-        checkedB: {},
-        receipts: [], // { id, name, url, dataUrl, storagePath, addedAt, checkReport }
-        receiptCheckReport: null // Riepilogo confronto quote cedolino vs giocate
+        picks: [], // Bozza nuova giornata in inserimento su GIOCA
+        // Giocata attiva già effettuata su Sisal (separata dalla nuova bozza in GIOCA)
+        activePlay: null, // { playedAt, picks, checkedA, checkedB, receipts, receiptCheckReport, closedA, closedB }
+        receipts: [],
+        receiptCheckReport: null
       },
       history: [],
       transactions: []
@@ -368,6 +368,36 @@
 
     function getSavedPlayerPref() {
       try { return localStorage.getItem(PLAYER_STORAGE_KEY) || ''; } catch (_) { return ''; }
+    }
+
+    // Restituisce il blocco su cui lavorare nella tab SCHEDINE:
+    // se esiste una giocata già segnata come "giocata" (activePlay), usa quella;
+    // altrimenti usa le partite attualmente in currentWeek.picks
+    function getSchedineSource() {
+      if (state.currentWeek.activePlay && Array.isArray(state.currentWeek.activePlay.picks) && state.currentWeek.activePlay.picks.length > 0) {
+        return {
+          mode: 'activePlay',
+          picks: state.currentWeek.activePlay.picks,
+          checkedA: state.currentWeek.activePlay.checkedA || {},
+          checkedB: state.currentWeek.activePlay.checkedB || {},
+          receipts: state.currentWeek.activePlay.receipts || [],
+          receiptCheckReport: state.currentWeek.activePlay.receiptCheckReport || null,
+          closedA: state.currentWeek.activePlay.closedA || null,
+          closedB: state.currentWeek.activePlay.closedB || null,
+          playedAt: state.currentWeek.activePlay.playedAt || null
+        };
+      }
+      return {
+        mode: 'draft',
+        picks: state.currentWeek.picks || [],
+        checkedA: state.currentWeek.checkedA || {},
+        checkedB: state.currentWeek.checkedB || {},
+        receipts: state.currentWeek.receipts || [],
+        receiptCheckReport: state.currentWeek.receiptCheckReport || null,
+        closedA: null,
+        closedB: null,
+        playedAt: null
+      };
     }
 
     // =========================================================================
@@ -483,11 +513,8 @@
 
             state.currentWeek = {
               weekLabel: data.weekLabel || getDefaultWeekLabel(),
-              status: data.status === 'played' ? 'played' : 'draft',
-              playedAt: data.playedAt || null,
               picks: mergedPicks,
-              checkedA: { ...(data.checkedA || {}), ...(isSavingWeek ? state.currentWeek.checkedA : {}) },
-              checkedB: { ...(data.checkedB || {}), ...(isSavingWeek ? state.currentWeek.checkedB : {}) },
+              activePlay: data.activePlay || null,
               receipts: Array.isArray(data.receipts) ? data.receipts : [],
               receiptCheckReport: data.receiptCheckReport || null
             };
@@ -539,11 +566,8 @@
         const weekRef = doc(db, 'artifacts', appId, 'public', 'data', 'currentWeek', 'active');
         let payload = {
           weekLabel: state.currentWeek.weekLabel,
-          status: state.currentWeek.status || 'draft',
-          playedAt: state.currentWeek.playedAt || null,
           picks: Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [],
-          checkedA: state.currentWeek.checkedA || {},
-          checkedB: state.currentWeek.checkedB || {},
+          activePlay: state.currentWeek.activePlay || null,
           receipts: Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [],
           receiptCheckReport: state.currentWeek.receiptCheckReport || null
         };
@@ -739,8 +763,27 @@
     }
 
     // =========================================================================
-    // 5. GEMINI AI — LETTURA SCREENSHOT & CHECK QUOTE CEDOLINI
+    // 5. GEMINI AI — SCREENSHOT GIOCATA, CHECK QUOTE & VERIFICA RISULTATI
     // =========================================================================
+    async function callGeminiWithFallback(payload) {
+      const apiKey = runtimeGeminiKey || "";
+      const models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
+      let lastErr = null;
+      for (const modelName of models) {
+        try {
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          return await fetchWithBackoff(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error("Errore Gemini API");
+    }
+
     async function analyzeSisalScreenshot(file) {
       if (!file) return;
       state.loadingAI = true;
@@ -766,12 +809,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
             role: "user",
             parts: [
               { text: prompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data
-                }
-              }
+              { inlineData: { mimeType, data: base64Data } }
             ]
           }],
           generationConfig: {
@@ -800,15 +838,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
           }
         };
 
-        const apiKey = runtimeGeminiKey || "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-        const result = await fetchWithBackoff(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
+        const result = await callGeminiWithFallback(payload);
         const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) throw new Error("Risposta vuota dall'AI");
 
@@ -830,7 +860,6 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       }
     }
 
-    // Confronta le quote lette dal cedolino Sisal con le quote attualmente salvate nell'app
     async function verifyReceiptAgainstPicks(base64Data) {
       if (!base64Data) return null;
       try {
@@ -846,12 +875,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             role: "user",
             parts: [
               { text: prompt },
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
-                }
-              }
+              { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
             ]
           }],
           generationConfig: {
@@ -877,15 +901,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           }
         };
 
-        const apiKey = runtimeGeminiKey || "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-
-        const result = await fetchWithBackoff(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
+        const result = await callGeminiWithFallback(payload);
         const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) return null;
 
@@ -893,7 +909,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const items = Array.isArray(parsed.items) ? parsed.items : [];
         if (items.length === 0) return null;
 
-        const picks = state.currentWeek.picks || [];
+        const picks = getSchedineSource().picks || [];
         const matched = [];
         const mismatches = [];
         const unmatched = [];
@@ -949,6 +965,110 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       } catch (err) {
         console.warn("Errore verifica quote cedolino:", err);
         return null;
+      }
+    }
+
+    // Analizza uno screenshot dei risultati Sisal e abbina gli esiti (won/lost/pending) alle partite della schedina A o B
+    async function analyzeResultsScreenshot(file, ticketType, targetPicks) {
+      if (!file || !Array.isArray(targetPicks) || targetPicks.length === 0) return;
+      state.loadingResultAI = ticketType;
+      state.aiResultPreview = null;
+      render();
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const mimeType = file.type || 'image/jpeg';
+
+        const picksContext = targetPicks.map((pk, idx) =>
+          `${idx + 1}. ID="${pk.id}" | Partita="${pk.partita}" | Pronostico="${pk.mercato}"`
+        ).join('\n');
+
+        const prompt = `Sei un assistente che legge gli screenshot dei risultati di scommesse Sisal.
+Ecco le partite presenti in questa schedina:
+${picksContext}
+
+Osserva lo screenshot allegato (risultati partite, spunte verdi/rosse, icone vinta/persa o partite ancora non giocate/in corso) e per ciascuna partita indica:
+- pickId: l'ID esatto della partita corrispondente dalla lista sopra (se non visibile nello screen, metti "")
+- partita: nome della partita
+- status: "won" se presa/vincente, "lost" se persa/sbagliata, oppure "pending" se ancora da giocare / in corso / non visibile
+- reason: breve nota di 2-5 parole sul risultato visto nello screen (es. "2-1 finale", "Spunta verde", "Non disputata")
+Restituisci esclusivamente JSON valido conforme allo schema.`;
+
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [
+              { text: prompt },
+              { inlineData: { mimeType, data: base64Data } }
+            ]
+          }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                outcomes: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      pickId: { type: "STRING" },
+                      partita: { type: "STRING" },
+                      status: { type: "STRING", enum: ["won", "lost", "pending"] },
+                      reason: { type: "STRING" }
+                    },
+                    required: ["partita", "status"]
+                  }
+                }
+              },
+              required: ["outcomes"]
+            }
+          }
+        };
+
+        const result = await callGeminiWithFallback(payload);
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("Risposta vuota dall'AI");
+
+        const parsed = JSON.parse(text);
+        const rawOutcomes = Array.isArray(parsed.outcomes) ? parsed.outcomes : [];
+
+        const previewItems = [];
+        rawOutcomes.forEach(o => {
+          let matchedPick = targetPicks.find(pk => pk.id === o.pickId);
+          if (!matchedPick) {
+            const normO = normalizeMatch(o.partita);
+            matchedPick = targetPicks.find(pk => {
+              const normPk = normalizeMatch(pk.partita);
+              return normPk && normO && (normPk.includes(normO) || normO.includes(normPk));
+            });
+          }
+          if (matchedPick) {
+            previewItems.push({
+              pickId: matchedPick.id,
+              partita: matchedPick.partita,
+              mercato: matchedPick.mercato,
+              status: ['won', 'lost', 'pending'].includes(o.status) ? o.status : 'pending',
+              reason: o.reason || ''
+            });
+          }
+        });
+
+        if (previewItems.length === 0) {
+          showToast("Nessun esito abbinato dalle partite di questa schedina. Riprova con uno screen più chiaro.", "warning");
+        } else {
+          state.aiResultPreview = {
+            ticketType,
+            items: previewItems
+          };
+          showToast(`Letti ${previewItems.length} esiti per Schedina ${ticketType}! Controlla e applica.`, "success");
+        }
+      } catch (err) {
+        console.error("Errore verifica AI risultati:", err);
+        showToast("Impossibile leggere i risultati dallo screenshot ora.", "error");
+      } finally {
+        state.loadingResultAI = null;
+        render();
       }
     }
 
@@ -1009,9 +1129,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     // =========================================================================
     // 6. MOTORE DI CALCOLO SCHEDINE (A: SECCA 5€ | B: SISTEMA 6 PARTITE 5€)
     // =========================================================================
-    function computeTickets() {
+    function computeTickets(customPicks = null) {
       const players = state.settings.players;
-      const picks = state.currentWeek.picks || [];
+      const picks = Array.isArray(customPicks) ? customPicks : (getSchedineSource().picks || []);
       const bonusActive = state.settings.bonusMultipla;
 
       const byPlayer = {};
@@ -1358,23 +1478,80 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
     window.deletePick = async function(pickId) {
       state.currentWeek.picks = state.currentWeek.picks.filter(p => p.id !== pickId);
-      if (state.currentWeek.checkedA) delete state.currentWeek.checkedA[pickId];
-      if (state.currentWeek.checkedB) delete state.currentWeek.checkedB[pickId];
       await saveCurrentWeekToCloud(true);
       render();
       showToast("Giocata eliminata.", "info");
     };
 
+    function getMutablePicksArray() {
+      if (state.currentWeek.activePlay && Array.isArray(state.currentWeek.activePlay.picks) && state.currentWeek.activePlay.picks.length > 0) {
+        return state.currentWeek.activePlay.picks;
+      }
+      return state.currentWeek.picks || [];
+    }
+
     window.setPickStatus = async function(pickId, newStatus) {
-      const pk = state.currentWeek.picks.find(p => p.id === pickId);
+      const picks = getMutablePicksArray();
+      const pk = picks.find(p => p.id === pickId);
       if (!pk) return;
       pk.status = pk.status === newStatus ? 'pending' : newStatus;
-      await saveCurrentWeekToCloud();
+      await saveCurrentWeekToCloud(true);
       render();
     };
 
+    // Trigger per caricare screenshot risultati AI per Schedina A o Schedina B
+    window.triggerResultScreenshotUpload = function(ticketType) {
+      const inp = document.getElementById(`result-screen-input-${ticketType}`);
+      if (inp) inp.click();
+    };
+
+    window.handleResultScreenshotChange = function(e, ticketType) {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      const calc = computeTickets();
+      const targetPicks = ticketType === 'A' ? calc.ticketA.picks : calc.ticketB.picks;
+      analyzeResultsScreenshot(file, ticketType, targetPicks);
+    };
+
+    window.cycleAIResultPreviewStatus = function(idx) {
+      const item = state.aiResultPreview?.items?.[idx];
+      if (!item) return;
+      const order = ['won', 'lost', 'pending'];
+      const next = order[(order.indexOf(item.status) + 1) % order.length];
+      item.status = next;
+      render();
+    };
+
+    window.dismissAIResultPreview = function() {
+      state.aiResultPreview = null;
+      render();
+    };
+
+    window.applyAIResultPreview = async function() {
+      const preview = state.aiResultPreview;
+      if (!preview || !Array.isArray(preview.items)) return;
+
+      const picks = getMutablePicksArray();
+      let appliedCount = 0;
+
+      preview.items.forEach(item => {
+        const pk = picks.find(p => p.id === item.pickId);
+        if (pk && ['won', 'lost', 'pending'].includes(item.status)) {
+          pk.status = item.status;
+          appliedCount++;
+        }
+      });
+
+      state.aiResultPreview = null;
+      await saveCurrentWeekToCloud(true);
+      render();
+      showToast(`Applicati ${appliedCount} esiti AI su Schedina ${preview.ticketType}!`, "success");
+    };
+
     window.updatePickFinalQuota = async function(pickId, rawVal) {
-      const pk = state.currentWeek.picks.find(p => p.id === pickId);
+      const picks = getMutablePicksArray();
+      const pk = picks.find(p => p.id === pickId);
       if (!pk) return;
       const parsed = parseFloat(String(rawVal).replace(',', '.'));
       if (isNaN(parsed) || parsed < 1.01) {
@@ -1383,59 +1560,93 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         return;
       }
       pk.quota = Number(parsed.toFixed(2));
-      // Aggiorna eventuale report di mismatch se presente
-      if (state.currentWeek.receiptCheckReport?.mismatches) {
-        state.currentWeek.receiptCheckReport.mismatches = state.currentWeek.receiptCheckReport.mismatches.filter(
+
+      const report = getSchedineSource().receiptCheckReport;
+      if (report?.mismatches) {
+        report.mismatches = report.mismatches.filter(
           m => !(m.pickId === pickId && Math.abs(m.receiptQuota - pk.quota) <= 0.009)
         );
       }
-      await saveCurrentWeekToCloud();
+      await saveCurrentWeekToCloud(true);
       render();
       showToast(`Quota aggiornata a ${pk.quota.toFixed(2)}`, "success");
     };
 
     window.applyAllReceiptQuotas = async function() {
-      const mismatches = state.currentWeek.receiptCheckReport?.mismatches || [];
+      const report = getSchedineSource().receiptCheckReport;
+      const mismatches = report?.mismatches || [];
       if (mismatches.length === 0) return;
 
+      const picks = getMutablePicksArray();
       mismatches.forEach(m => {
-        const pk = (state.currentWeek.picks || []).find(p => p.id === m.pickId);
+        const pk = picks.find(p => p.id === m.pickId);
         if (pk && m.receiptQuota >= 1.01) {
           pk.quota = Number(Number(m.receiptQuota).toFixed(2));
         }
       });
 
-      if (state.currentWeek.receiptCheckReport) {
-        state.currentWeek.receiptCheckReport.mismatches = [];
-      }
-      await saveCurrentWeekToCloud();
+      if (report) report.mismatches = [];
+      await saveCurrentWeekToCloud(true);
       render();
       showToast("Tutte le quote sono state allineate ai cedolini!", "success");
     };
 
     window.dismissReceiptReport = async function() {
+      if (state.currentWeek.activePlay) {
+        state.currentWeek.activePlay.receiptCheckReport = null;
+      }
       state.currentWeek.receiptCheckReport = null;
-      await saveCurrentWeekToCloud();
+      await saveCurrentWeekToCloud(true);
       render();
     };
 
+    // Segna la giocata come GIOCATA su Sisal e libera la tab GIOCA per una nuova giornata
     window.markTicketAsPlayed = async function() {
-      if ((state.currentWeek.picks || []).length === 0) {
-        showToast("Aggiungi almeno una partita prima di segnare come giocata.", "warning");
+      const picks = state.currentWeek.picks || [];
+      if (picks.length === 0) {
+        showToast("Aggiungi almeno una partita nella tab GIOCA prima di segnare come giocata.", "warning");
         return;
       }
-      state.currentWeek.status = 'played';
-      state.currentWeek.playedAt = Date.now();
-      await saveCurrentWeekToCloud();
-      render();
-      showToast("Schedina impostata su GIOCATA! Ora puoi caricare i cedolini e verificare le quote.", "success");
-    };
 
-    window.reopenDraftTicket = async function() {
-      state.currentWeek.status = 'draft';
-      await saveCurrentWeekToCloud();
+      const calc = computeTickets(picks);
+      const snapshotA = calc.ticketA.picks.map(p => ({ ...p, status: 'pending' }));
+      const snapshotB = calc.ticketB.picks.map(p => ({ ...p, status: 'pending' }));
+
+      // Unifica i pick congelati mantenendo status/quota
+      const frozenMap = new Map();
+      picks.forEach(p => frozenMap.set(p.id, { ...p }));
+      [...snapshotA, ...snapshotB].forEach(p => {
+        const base = frozenMap.get(p.id) || { ...p };
+        frozenMap.set(p.id, { ...base, isJolly: !!p.isJolly });
+      });
+
+      state.currentWeek.activePlay = {
+        playedAt: Date.now(),
+        picks: Array.from(frozenMap.values()),
+        checkedA: {},
+        checkedB: {},
+        receipts: Array.isArray(state.currentWeek.receipts) ? [...state.currentWeek.receipts] : [],
+        receiptCheckReport: state.currentWeek.receiptCheckReport || null,
+        closedA: null,
+        closedB: null
+      };
+
+      // Pulisce la bozza in GIOCA così è subito pronta per una nuova giornata
+      state.currentWeek.picks = [];
+      state.currentWeek.receipts = [];
+      state.currentWeek.receiptCheckReport = null;
+      state.form = {
+        campionato: state.form.campionato || 'ITA Serie A',
+        partita: '',
+        mercato: '1X2 ESITO FINALE',
+        esito: '',
+        quota: '',
+        dataOra: ''
+      };
+
+      await saveCurrentWeekToCloud(true);
       render();
-      showToast("Schedina rimessa in compilazione.", "info");
+      showToast("Giocata registrata! Scheda GIOCA pronta per una nuova giornata.", "success");
     };
 
     window.triggerReceiptUpload = function() {
@@ -1443,14 +1654,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (inp) inp.click();
     };
 
-    // Carica i cedolini su Firebase Storage (con fallback base64) ed esegue subito il check quote AI
     window.handleReceiptUpload = async function(e) {
       const files = Array.from(e.target.files || []);
       e.target.value = '';
       if (files.length === 0) return;
 
-      if (!Array.isArray(state.currentWeek.receipts)) {
-        state.currentWeek.receipts = [];
+      const targetContainer = state.currentWeek.activePlay || state.currentWeek;
+      if (!Array.isArray(targetContainer.receipts)) {
+        targetContainer.receipts = [];
       }
 
       state.uploadingReceipts = true;
@@ -1485,7 +1696,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             }
           }
 
-          state.currentWeek.receipts.push({
+          targetContainer.receipts.push({
             id: receiptId,
             name: file.name || 'Cedolino Sisal',
             url: downloadUrl || '',
@@ -1494,7 +1705,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             addedAt: Date.now()
           });
 
-          // Esegui il check quote sul cedolino appena caricato
           const report = await verifyReceiptAgainstPicks(base64Only);
           if (report) {
             mergedReport.totalExtracted += report.totalExtracted;
@@ -1509,11 +1719,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       if (mergedReport.totalExtracted > 0) {
-        state.currentWeek.receiptCheckReport = mergedReport;
+        targetContainer.receiptCheckReport = mergedReport;
       }
 
       state.uploadingReceipts = false;
-      await saveCurrentWeekToCloud();
+      await saveCurrentWeekToCloud(true);
       render();
 
       if (mergedReport.mismatches.length > 0) {
@@ -1525,9 +1735,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     };
 
-    // Permette di rilanciare il check quote anche su un cedolino già caricato in precedenza
     window.recheckExistingReceipt = async function(receiptId) {
-      const rc = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
+      const targetContainer = state.currentWeek.activePlay || state.currentWeek;
+      const rc = (targetContainer.receipts || []).find(r => r.id === receiptId);
       if (!rc) return;
 
       state.checkingReceiptId = receiptId;
@@ -1545,8 +1755,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         const report = await verifyReceiptAgainstPicks(base64Only);
         if (report) {
-          state.currentWeek.receiptCheckReport = report;
-          await saveCurrentWeekToCloud();
+          targetContainer.receiptCheckReport = report;
+          await saveCurrentWeekToCloud(true);
           if (report.mismatches.length > 0) {
             showToast(`Verifica completata: ${report.mismatches.length} quote diverse trovate.`, "warning");
           } else {
@@ -1565,7 +1775,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     };
 
     window.deleteReceipt = async function(receiptId) {
-      const target = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
+      const targetContainer = state.currentWeek.activePlay || state.currentWeek;
+      const target = (targetContainer.receipts || []).find(r => r.id === receiptId);
       if (target?.storagePath && storage) {
         try {
           await deleteObject(storageRef(storage, target.storagePath));
@@ -1573,14 +1784,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           console.warn("File non eliminato da Storage:", err);
         }
       }
-      state.currentWeek.receipts = (state.currentWeek.receipts || []).filter(r => r.id !== receiptId);
+      targetContainer.receipts = (targetContainer.receipts || []).filter(r => r.id !== receiptId);
       await saveCurrentWeekToCloud(true);
       render();
       showToast("Cedolino rimosso.", "info");
     };
 
     window.openReceiptPreview = function(receiptId) {
-      const rc = (state.currentWeek.receipts || []).find(r => r.id === receiptId);
+      const targetContainer = state.currentWeek.activePlay || state.currentWeek;
+      const rc = (targetContainer.receipts || []).find(r => r.id === receiptId);
       if (!rc) return;
       const imgSrc = rc.url || rc.dataUrl;
       openModal(`
@@ -1606,10 +1818,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     };
 
     window.toggleCheckSisal = async function(ticketType, pickId) {
+      const targetContainer = state.currentWeek.activePlay || state.currentWeek;
       const key = ticketType === 'A' ? 'checkedA' : 'checkedB';
-      if (!state.currentWeek[key]) state.currentWeek[key] = {};
-      state.currentWeek[key][pickId] = !state.currentWeek[key][pickId];
-      await saveCurrentWeekToCloud();
+      if (!targetContainer[key]) targetContainer[key] = {};
+      targetContainer[key][pickId] = !targetContainer[key][pickId];
+      await saveCurrentWeekToCloud(true);
       render();
     };
 
@@ -1625,10 +1838,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     };
 
     window.copyWhatsAppSummary = function() {
-      const calc = computeTickets();
-      const isPlayed = state.currentWeek.status === 'played';
+      const src = getSchedineSource();
+      const calc = computeTickets(src.picks);
+      const isPlayed = src.mode === 'activePlay';
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.1 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
+      lines.push(`⚽ *BOLLETTONE v1.2 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -1662,7 +1876,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     }
 
     // =========================================================================
-    // 8. MODALI (CHIUSURA SETTIMANA, CASSA, ELIMINA MOVIMENTO, IMPOSTAZIONI)
+    // 8. CHIUSURA SEPARATA SCHEDINA A / SCHEDINA B & MODALI
     // =========================================================================
     window.closeModal = function() {
       document.getElementById('modal-root').classList.add('hidden');
@@ -1673,102 +1887,117 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       document.getElementById('modal-root').classList.remove('hidden');
     }
 
-    window.openArchiveModal = function() {
-      const calc = computeTickets();
-      const suggestedWin = Number((calc.ticketA.actualWin + calc.ticketB.actualWin).toFixed(2));
-      const pendingCount = state.currentWeek.picks.filter(p => p.status === 'pending').length;
-
-      const labelA = calc.ticketA.status === 'won'
-        ? `<span class="text-[#78BE20]">VINCENTE (${formatEuro(calc.ticketA.actualWin)})</span>`
-        : calc.ticketA.status === 'lost'
-          ? `<span class="text-red-400">PERDENTE (0,00 €)</span>`
-          : `<span class="text-amber-400">In attesa</span>`;
-
-      const labelB = calc.ticketB.status === 'won'
-        ? `<span class="text-[#78BE20]">VINCENTE (${formatEuro(calc.ticketB.actualWin)})</span>`
-        : calc.ticketB.status === 'lost'
-          ? `<span class="text-red-400">PERDENTE (0,00 €)</span>`
-          : `<span class="text-amber-400">In attesa</span>`;
+    // Chiusura separata per Schedina A ('A') o Schedina B ('B')
+    window.openSingleTicketCloseModal = function(ticketType) {
+      const src = getSchedineSource();
+      const calc = computeTickets(src.picks);
+      const isA = ticketType === 'A';
+      const tObj = isA ? calc.ticketA : calc.ticketB;
+      const suggested = tObj.status === 'won' ? Number(tObj.actualWin || 0) : 0;
+      const pendingInTicket = tObj.picks.filter(p => p.status === 'pending').length;
 
       openModal(`
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h3 class="font-bold text-base text-white">Chiudi Settimana & Verifica Cassa</h3>
-            <p class="text-xs text-gray-400">${escapeHtml(state.currentWeek.weekLabel)}</p>
+            <h3 class="font-bold text-base text-white">Chiudi & Verifica Schedina ${ticketType}</h3>
+            <p class="text-xs text-gray-400">${isA ? 'Secca · Puntata 5,00 €' : 'Sistema 6 partite (1 errore) · Puntata 5,00 €'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 space-y-4 overflow-y-auto">
-          ${pendingCount > 0 ? `
+          ${pendingInTicket > 0 ? `
             <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-              <strong>Attenzione:</strong> ci sono ancora <strong>${pendingCount} partite</strong> in attesa di esito. Segnale tutte nella scheda Schedine per un calcolo esatto.
+              Ci sono ancora <strong>${pendingInTicket} partit${pendingInTicket === 1 ? 'a' : 'e'}</strong> in sospeso su Schedina ${ticketType}. Puoi anche chiudere ora e indicare l'esito finale.
             </div>
           ` : ''}
 
-          <div class="grid grid-cols-2 gap-2.5">
-            <div class="p-3 rounded-xl bg-[#121212] border border-white/10">
-              <div class="text-[11px] text-gray-400">Schedina A (5 €)</div>
-              <div class="font-black text-xs mt-1">${labelA}</div>
-            </div>
-            <div class="p-3 rounded-xl bg-[#121212] border border-white/10">
-              <div class="text-[11px] text-gray-400">Schedina B (5 €)</div>
-              <div class="font-black text-xs mt-1">${labelB}</div>
-            </div>
+          <div class="p-3 rounded-xl bg-[#121212] border border-white/10 flex items-center justify-between">
+            <span class="text-xs text-gray-400">Stato calcolato</span>
+            <span class="text-xs font-black ${
+              tObj.status === 'won' ? 'text-[#78BE20]' : tObj.status === 'lost' ? 'text-red-400' : 'text-amber-400'
+            }">
+              ${tObj.status === 'won' ? `VINCENTE (${formatEuro(tObj.actualWin)})` : tObj.status === 'lost' ? 'PERDENTE' : 'IN VERIFICA'}
+            </span>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-gray-200 mb-1.5">Conferma importo vinto su Sisal (€)</label>
-            <input id="archive-win-input" type="number" step="0.01" min="0" value="${suggestedWin.toFixed(2)}"
+            <label class="block text-xs font-bold text-gray-200 mb-1.5">Vincita confermata per Schedina ${ticketType} (€)</label>
+            <input id="single-ticket-win-input" type="number" step="0.01" min="0" value="${suggested.toFixed(2)}"
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-lg focus:outline-none focus:border-[#78BE20]" />
-            <p class="text-[11px] text-gray-500 mt-1">Se vincente, questa somma verrà caricata in automatico nella Cassa Comune.</p>
           </div>
 
-          <label class="flex items-center gap-3 p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
-            <input id="archive-deduct-stake" type="checkbox" checked class="w-5 h-5 accent-[#78BE20] rounded shrink-0" />
-            <span class="text-xs text-gray-300">Scala <strong>-10,00 €</strong> dalla Cassa Comune per il costo delle due schedine</span>
-          </label>
-
-          <button onclick="confirmArchiveWeek()" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
-            Conferma Vincita, Aggiorna Cassa & Archivia
+          <button onclick="confirmSingleTicketClose('${ticketType}')"
+            class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
+            Conferma Chiusura Schedina ${ticketType}
           </button>
         </div>
       `);
     };
 
-    window.confirmArchiveWeek = async function() {
-      const calc = computeTickets();
-      const winVal = parseFloat(document.getElementById('archive-win-input')?.value || '0');
-      const totalWin = isNaN(winVal) ? 0 : Math.max(0, Number(winVal.toFixed(2)));
-      const deductStake = document.getElementById('archive-deduct-stake')?.checked ?? true;
+    window.confirmSingleTicketClose = async function(ticketType) {
+      const winVal = parseFloat(document.getElementById('single-ticket-win-input')?.value || '0');
+      const winAmt = isNaN(winVal) ? 0 : Math.max(0, Number(winVal.toFixed(2)));
       const now = Date.now();
       const dateStr = new Date().toLocaleDateString('it-IT');
 
-      const historyEntry = {
-        weekLabel: state.currentWeek.weekLabel,
-        archivedAt: now,
+      if (!state.currentWeek.activePlay) {
+        const src = getSchedineSource();
+        state.currentWeek.activePlay = {
+          playedAt: now,
+          picks: src.picks.map(p => ({ ...p })),
+          checkedA: { ...(src.checkedA || {}) },
+          checkedB: { ...(src.checkedB || {}) },
+          receipts: [...(state.currentWeek.receipts || [])],
+          receiptCheckReport: state.currentWeek.receiptCheckReport || null,
+          closedA: null,
+          closedB: null
+        };
+      }
+
+      const closedObj = {
+        closedAt: now,
         dateStr,
-        picks: state.currentWeek.picks,
-        receipts: (state.currentWeek.receipts || []).map(r => ({ id: r.id, name: r.name, url: r.url || '' })),
-        schedinaA: {
-          quotaTot: Number(calc.ticketA.quotaTot.toFixed(2)),
-          potentialWin: Number(calc.ticketA.potentialWin.toFixed(2)),
-          actualWin: calc.ticketA.actualWin,
-          won: calc.ticketA.status === 'won'
-        },
-        schedinaB: {
-          minWin: Number(calc.ticketB.minWin.toFixed(2)),
-          maxWin: Number(calc.ticketB.maxWin.toFixed(2)),
-          actualWin: calc.ticketB.actualWin,
-          hitsLabel: calc.ticketB.hitsLabel,
-          won: calc.ticketB.status === 'won'
-        },
-        totalStake: 10.00,
-        totalWin
+        win: winAmt,
+        won: winAmt > 0
       };
 
-      await addHistoryToCloud(historyEntry);
+      if (ticketType === 'A') {
+        state.currentWeek.activePlay.closedA = closedObj;
+      } else {
+        state.currentWeek.activePlay.closedB = closedObj;
+      }
 
-      if (deductStake) {
+      const bothClosed = !!(state.currentWeek.activePlay.closedA && state.currentWeek.activePlay.closedB);
+
+      if (bothClosed) {
+        const cA = state.currentWeek.activePlay.closedA;
+        const cB = state.currentWeek.activePlay.closedB;
+        const totalWin = Number(((cA.win || 0) + (cB.win || 0)).toFixed(2));
+        const calc = computeTickets(state.currentWeek.activePlay.picks);
+
+        await addHistoryToCloud({
+          weekLabel: state.currentWeek.weekLabel,
+          archivedAt: now,
+          dateStr,
+          picks: state.currentWeek.activePlay.picks,
+          receipts: (state.currentWeek.activePlay.receipts || []).map(r => ({ id: r.id, name: r.name, url: r.url || '' })),
+          schedinaA: {
+            quotaTot: Number(calc.ticketA.quotaTot.toFixed(2)),
+            potentialWin: Number(calc.ticketA.potentialWin.toFixed(2)),
+            actualWin: Number(cA.win || 0),
+            won: (cA.win || 0) > 0
+          },
+          schedinaB: {
+            minWin: Number(calc.ticketB.minWin.toFixed(2)),
+            maxWin: Number(calc.ticketB.maxWin.toFixed(2)),
+            actualWin: Number(cB.win || 0),
+            hitsLabel: calc.ticketB.hitsLabel,
+            won: (cB.win || 0) > 0
+          },
+          totalStake: 10.00,
+          totalWin
+        });
+
         await addTransactionToCloud({
           type: 'bet',
           amount: -10.00,
@@ -1776,31 +2005,49 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           date: dateStr,
           createdAt: now
         });
-      }
-      if (totalWin > 0) {
-        await addTransactionToCloud({
-          type: 'win',
-          amount: totalWin,
-          note: `Vincita Confermata (${state.currentWeek.weekLabel})`,
-          date: dateStr,
-          createdAt: now + 1
-        });
-      }
 
-      state.currentWeek = {
-        weekLabel: getDefaultWeekLabel(),
-        status: 'draft',
-        playedAt: null,
-        picks: [],
-        checkedA: {},
-        checkedB: {},
-        receipts: [],
-        receiptCheckReport: null
-      };
+        if (totalWin > 0) {
+          await addTransactionToCloud({
+            type: 'win',
+            amount: totalWin,
+            note: `Vincita Confermata (${state.currentWeek.weekLabel})`,
+            date: dateStr,
+            createdAt: now + 1
+          });
+        }
+
+        // Promuove eventuale nuova bozza già inserita nella tab GIOCA come nuova settimana attiva
+        const nextDraftPicks = Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [];
+        const nextDraftReceipts = Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [];
+        const nextDraftReport = state.currentWeek.receiptCheckReport || null;
+
+        state.currentWeek = {
+          weekLabel: getDefaultWeekLabel(),
+          picks: nextDraftPicks,
+          activePlay: null,
+          receipts: nextDraftReceipts,
+          receiptCheckReport: nextDraftReport
+        };
+
+        await saveCurrentWeekToCloud(true);
+        closeModal();
+        render();
+        showToast("Entrambe le schedine chiuse! Cassa e Storico aggiornati.", "success");
+      } else {
+        await saveCurrentWeekToCloud(true);
+        closeModal();
+        render();
+        showToast(`Schedina ${ticketType} chiusa! Schedina ${ticketType === 'A' ? 'B' : 'A'} resta aperta.`, "success");
+      }
+    };
+
+    window.reopenSingleTicket = async function(ticketType) {
+      if (!state.currentWeek.activePlay) return;
+      if (ticketType === 'A') state.currentWeek.activePlay.closedA = null;
+      else state.currentWeek.activePlay.closedB = null;
       await saveCurrentWeekToCloud(true);
-      closeModal();
       render();
-      showToast("Settimana archiviata e Cassa Comune aggiornata!", "success");
+      showToast(`Schedina ${ticketType} riaperta.`, "info");
     };
 
     window.openCashModal = function(mode = 'deposit', preselectedPlayerId = '') {
@@ -1946,7 +2193,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.1 · Firestore + Storage</p>
+            <p class="text-[11px] text-gray-400">Release v1.2 · Firestore + Storage</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2000,7 +2247,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="pt-3 border-t border-white/10 space-y-2.5">
             <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestione Settimana</div>
             <button onclick="resetCurrentWeekOnly()" class="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 font-semibold text-xs transition">
-              Svuota giocate settimana corrente
+              Svuota giocate e giocata attiva corrente
             </button>
           </div>
 
@@ -2083,18 +2330,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       await saveSettingsToCloud();
-      await saveCurrentWeekToCloud();
+      await saveCurrentWeekToCloud(true);
       closeModal();
       render();
       showToast("Impostazioni salvate!", "success");
     };
 
     window.resetCurrentWeekOnly = async function() {
-      state.currentWeek.status = 'draft';
-      state.currentWeek.playedAt = null;
       state.currentWeek.picks = [];
-      state.currentWeek.checkedA = {};
-      state.currentWeek.checkedB = {};
+      state.currentWeek.activePlay = null;
       state.currentWeek.receipts = [];
       state.currentWeek.receiptCheckReport = null;
       await saveCurrentWeekToCloud(true);
@@ -2186,12 +2430,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     }
 
     // --- TAB 1: GIOCA ---
-    function renderGiocaTab(calc) {
+    function renderGiocaTab(calcDraft) {
       if (!state.selectedPlayerId && state.settings.players[0]) {
         state.selectedPlayerId = state.settings.players[0].id;
       }
 
       const picks = state.currentWeek.picks || [];
+      const hasActivePlay = !!(state.currentWeek.activePlay && Array.isArray(state.currentWeek.activePlay.picks) && state.currentWeek.activePlay.picks.length > 0);
       const matchCounts = {};
       picks.forEach(p => {
         const k = normalizeMatch(p.partita);
@@ -2267,8 +2512,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         ? `
           <div class="text-center py-8 px-4 rounded-2xl bg-[#1E1E1E] border border-dashed border-white/10">
             <div class="text-2xl mb-1.5">⚽</div>
-            <div class="text-sm font-bold text-gray-300">Nessuna giocata inserita</div>
-            <p class="text-xs text-gray-500 mt-1">Carica uno screenshot Sisal oppure scegli la partita dal campionato.</p>
+            <div class="text-sm font-bold text-gray-300">${hasActivePlay ? 'Nuova giornata pronta per l’inserimento' : 'Nessuna giocata inserita'}</div>
+            <p class="text-xs text-gray-500 mt-1">${hasActivePlay ? 'La giocata precedente è al sicuro in SCHEDINE. Inserisci qui le partite per la nuova giornata.' : 'Carica uno screenshot Sisal oppure scegli la partita dal campionato.'}</p>
           </div>
         `
         : picks.slice().reverse().map(pk => {
@@ -2299,12 +2544,23 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           }).join('');
 
       return `
+        ${hasActivePlay ? `
+          <div class="p-3 rounded-2xl bg-[#78BE20]/10 border border-[#78BE20]/35 flex items-center justify-between gap-2">
+            <div class="text-xs text-[#78BE20] font-semibold">
+              🎟️ Hai già una giocata attiva su <strong>SCHEDINE</strong>. Qui stai preparando una nuova giornata.
+            </div>
+            <button onclick="switchTab('schedine')" class="px-2.5 py-1.5 rounded-xl bg-[#78BE20] text-[#121212] font-extrabold text-[11px] shrink-0">
+              Vedi Giocata
+            </button>
+          </div>
+        ` : ''}
+
         <div class="p-3.5 rounded-2xl bg-[#1E1E1E] border border-white/10 flex items-center justify-between gap-2">
           <div>
-            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avanzamento Settimana</div>
+            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avanzamento Giornata in Corso</div>
             <div class="text-sm font-bold text-white mt-0.5">
-              ${calc.playersComplete}/${calc.playersCount} completi
-              <span class="text-gray-500 font-normal">(${picks.length}/${calc.playersCount * 2} partite)</span>
+              ${calcDraft.playersComplete}/${calcDraft.playersCount} completi
+              <span class="text-gray-500 font-normal">(${picks.length}/${calcDraft.playersCount * 2} partite)</span>
             </div>
           </div>
           <button onclick="switchTab('schedine')" class="px-3 py-2 rounded-xl bg-[#78BE20]/15 text-[#78BE20] text-xs font-extrabold hover:bg-[#78BE20]/25 transition shrink-0">
@@ -2447,9 +2703,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 2: SCHEDINE (STATO "GIOCATA", STORAGE CEDOLINI, CHECK QUOTE & CHIUSURA) ---
-    function renderSchedineTab(calc) {
-      if (state.currentWeek.picks.length === 0) {
+    // --- TAB 2: SCHEDINE (VERIFICA AI SEPARATA PER A e B + CHIUSURA SEPARATA) ---
+    function renderSchedineTab() {
+      const src = getSchedineSource();
+      if (src.picks.length === 0) {
         return `
           <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
             <div class="text-4xl mb-3">🎫</div>
@@ -2460,16 +2717,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         `;
       }
 
-      const isPlayed = state.currentWeek.status === 'played';
-      const receipts = Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [];
-      const report = state.currentWeek.receiptCheckReport;
+      const calc = computeTickets(src.picks);
+      const isPlayed = src.mode === 'activePlay';
+      const receipts = Array.isArray(src.receipts) ? src.receipts : [];
+      const report = src.receiptCheckReport;
       const mismatchMap = {};
       if (report && Array.isArray(report.mismatches)) {
         report.mismatches.forEach(m => { mismatchMap[m.pickId] = m; });
       }
 
-      const renderTicketRow = (pk, ticketType) => {
-        const isChecked = !!(state.currentWeek[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
+      const renderTicketRow = (pk, ticketType, isTicketClosed) => {
+        const isChecked = !!(src[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
         const mm = mismatchMap[pk.id];
         return `
           <div class="p-3.5 border-b border-white/5 last:border-0 transition ${mm ? 'bg-amber-500/10' : isChecked ? 'bg-[#78BE20]/5' : ''}">
@@ -2489,6 +2747,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <div class="flex items-center gap-1 shrink-0">
                     <span class="text-[10px] text-gray-500">@</span>
                     <input type="number" step="0.01" min="1.01" value="${Number(pk.quota).toFixed(2)}"
+                      ${isTicketClosed ? 'disabled' : ''}
                       title="Quota definitiva (modifica dopo lettura cedolino)"
                       onchange="updatePickFinalQuota('${pk.id}', this.value)"
                       class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#78BE20]'} font-black text-xs text-right focus:outline-none focus:border-[#78BE20]" />
@@ -2499,7 +2758,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <span class="text-[10px] text-gray-500 shrink-0">${escapeHtml(pk.dataOra || '')}</span>
                 </div>
 
-                ${mm ? `
+                ${mm && !isTicketClosed ? `
                   <div class="mt-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-2">
                     <span class="text-[11px] text-amber-300 font-semibold">
                       ⚠️ Cedolino: <strong>${mm.receiptQuota.toFixed(2)}</strong> (in app: ${mm.appQuota.toFixed(2)})
@@ -2517,14 +2776,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[10px] font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
-                    <button onclick="setPickStatus('${pk.id}', 'won')"
-                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    <button onclick="setPickStatus('${pk.id}', 'won')" ${isTicketClosed ? 'disabled' : ''}
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
                         pk.status === 'won'
                           ? 'bg-[#78BE20] text-[#121212] border-[#78BE20]'
                           : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#78BE20]'
                       }">✅ Presa</button>
-                    <button onclick="setPickStatus('${pk.id}', 'lost')"
-                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    <button onclick="setPickStatus('${pk.id}', 'lost')" ${isTicketClosed ? 'disabled' : ''}
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
                         pk.status === 'lost'
                           ? 'bg-red-500 text-white border-red-400'
                           : 'bg-[#121212] text-gray-400 border-white/10 hover:text-red-400'
@@ -2537,19 +2796,62 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         `;
       };
 
-      const aBadge = calc.ticketA.status === 'won'
-        ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketA.actualWin)}</span>`
-        : calc.ticketA.status === 'lost'
-          ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
-          : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Quota ${calc.ticketA.quotaTot.toFixed(2)}</span>`;
+      const renderAIResultPreviewBox = (ticketType) => {
+        if (!state.aiResultPreview || state.aiResultPreview.ticketType !== ticketType) return '';
+        const items = state.aiResultPreview.items || [];
+        return `
+          <div class="m-3 p-3 rounded-2xl bg-[#121212] border border-[#78BE20]/50 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-[#78BE20]">🤖 Esiti letti da Screen — Schedina ${ticketType}</span>
+              <button type="button" onclick="dismissAIResultPreview()" class="text-xs text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div class="space-y-1.5">
+              ${items.map((it, idx) => {
+                const stBadge = it.status === 'won'
+                  ? '<span class="px-2 py-0.5 rounded bg-[#78BE20] text-[#121212] font-black text-[10px]">✅ Presa</span>'
+                  : it.status === 'lost'
+                    ? '<span class="px-2 py-0.5 rounded bg-red-500 text-white font-black text-[10px]">❌ Persa</span>'
+                    : '<span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-[10px]">⏳ In attesa</span>';
+                return `
+                  <div class="p-2 rounded-xl bg-[#1E1E1E] border border-white/10 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-white truncate">${escapeHtml(it.partita)}</div>
+                      <div class="text-[10px] text-gray-400 truncate">${escapeHtml(it.mercato)}${it.reason ? ' · ' + escapeHtml(it.reason) : ''}</div>
+                    </div>
+                    <button type="button" onclick="cycleAIResultPreviewStatus(${idx})" title="Tocca per cambiare stato" class="shrink-0">
+                      ${stBadge}
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+            <button type="button" onclick="applyAIResultPreview()"
+              class="w-full py-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition">
+              Applica esiti a Schedina ${ticketType}
+            </button>
+          </div>
+        `;
+      };
 
-      const bBadge = calc.ticketB.status === 'won'
-        ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketB.actualWin)}</span>`
-        : calc.ticketB.status === 'lost'
-          ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
-          : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Sistema 1 errore</span>`;
+      const closedA = src.closedA;
+      const closedB = src.closedB;
 
-      // Box Report Check Quote Cedolini vs App
+      const aBadge = closedA
+        ? `<span class="px-2.5 py-1 rounded-lg ${closedA.win > 0 ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'} text-xs font-black">CHIUSA ${closedA.win > 0 ? '+' + formatEuro(closedA.win) : '0,00 €'}</span>`
+        : calc.ticketA.status === 'won'
+          ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketA.actualWin)}</span>`
+          : calc.ticketA.status === 'lost'
+            ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
+            : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Quota ${calc.ticketA.quotaTot.toFixed(2)}</span>`;
+
+      const bBadge = closedB
+        ? `<span class="px-2.5 py-1 rounded-lg ${closedB.win > 0 ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'} text-xs font-black">CHIUSA ${closedB.win > 0 ? '+' + formatEuro(closedB.win) : '0,00 €'}</span>`
+        : calc.ticketB.status === 'won'
+          ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketB.actualWin)}</span>`
+          : calc.ticketB.status === 'lost'
+            ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
+            : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Sistema 1 errore</span>`;
+
       let checkReportHtml = '';
       if (report) {
         const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
@@ -2596,7 +2898,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       const receiptsHtml = receipts.length === 0
-        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora. Allega la foto/ricevuta Sisal per salvarla su Storage e verificare le quote.</div>`
+        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora. Allega la foto/ricevuta Sisal per verificare le quote.</div>`
         : `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
             ${receipts.map(rc => {
               const imgSrc = rc.url || rc.dataUrl;
@@ -2621,6 +2923,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>`;
 
       return `
+        <!-- Input nascosti per screen risultati AI separati per Schedina A e Schedina B -->
+        <input id="result-screen-input-A" type="file" accept="image/*" class="hidden" onchange="handleResultScreenshotChange(event, 'A')" />
+        <input id="result-screen-input-B" type="file" accept="image/*" class="hidden" onchange="handleResultScreenshotChange(event, 'B')" />
+
         <!-- Azioni Rapide -->
         <div class="grid grid-cols-2 gap-2.5">
           <button onclick="copyWhatsAppSummary()" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
@@ -2631,31 +2937,24 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <span>🎟️</span> Segna come Giocata
             </button>
           ` : `
-            <button onclick="openArchiveModal()" class="py-3 px-3 rounded-2xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
-              <span>🏁</span> Chiudi & Verifica
+            <button onclick="switchTab('gioca')" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-[#78BE20]/40 text-[#78BE20] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+              <span>➕</span> Nuova Giornata
             </button>
           `}
         </div>
 
-        <!-- Banner Stato Schedina: Bozza vs Giocata + Cedolini & Check Quote -->
+        <!-- Report Giocata & Cedolini -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${isPlayed ? 'border-[#78BE20]/50' : 'border-white/10'} p-4 space-y-3 shadow-lg">
           <div class="flex items-center justify-between gap-2">
-            <div class="flex items-center gap-2">
-              <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                isPlayed
-                  ? 'bg-[#78BE20] text-[#121212]'
-                  : 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
-              }">
-                ${isPlayed ? '✅ GIOCATA SU SISAL' : '📝 IN COMPILAZIONE'}
-              </span>
-              ${isPlayed && state.currentWeek.playedAt ? `
-                <span class="text-[10px] text-gray-500">${new Date(state.currentWeek.playedAt).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-              ` : ''}
-            </div>
-            ${isPlayed ? `
-              <button type="button" onclick="reopenDraftTicket()" class="text-[11px] font-bold text-gray-400 hover:text-white underline">
-                Riapri bozza
-              </button>
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+              isPlayed
+                ? 'bg-[#78BE20] text-[#121212]'
+                : 'bg-amber-400/15 text-amber-300 border border-amber-400/30'
+            }">
+              ${isPlayed ? '✅ GIOCATA SU SISAL (IN VERIFICA)' : '📝 BOZZA IN COMPILAZIONE'}
+            </span>
+            ${src.playedAt ? `
+              <span class="text-[10px] text-gray-500">Giocata: ${new Date(src.playedAt).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
             ` : ''}
           </div>
 
@@ -2677,8 +2976,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
             <div class="flex items-center justify-between gap-2">
               <div>
-                <div class="text-xs font-bold text-white">Cedolini Sisal (Storage + Check Quote AI)</div>
-                <div class="text-[10px] text-gray-400">Carica i cedolini: li salviamo su Storage e verifichiamo in automatico eventuali variazioni di quota.</div>
+                <div class="text-xs font-bold text-white">Cedolini Sisal & Check Quote</div>
+                <div class="text-[10px] text-gray-400">Carica i cedolini e allinea le quote definitive prima della chiusura.</div>
               </div>
               <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
               <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
@@ -2690,17 +2989,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
 
           ${checkReportHtml}
-
-          ${isPlayed ? `
-            <button onclick="openArchiveModal()" class="w-full py-2.5 rounded-xl bg-[#78BE20]/15 hover:bg-[#78BE20]/25 border border-[#78BE20]/40 text-[#78BE20] font-extrabold text-xs transition">
-              Risultati pronti? Procedi a Chiudi & Verifica →
-            </button>
-          ` : ''}
         </section>
 
-        <!-- SCHEDINA A -->
-        <section class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-xl">
-          <div class="sisal-pattern p-4 border-b border-white/10">
+        <!-- SCHEDINA A (Verifica AI & Chiusura Separata) -->
+        <section class="rounded-3xl bg-[#1E1E1E] border ${closedA ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
+          <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
               <div>
                 <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina A · Secca</div>
@@ -2709,7 +3002,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ${aBadge}
             </div>
 
-            <div class="grid grid-cols-2 gap-2.5 mt-3">
+            <div class="grid grid-cols-2 gap-2.5">
               <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
                 <div class="text-[10px] font-semibold text-[#78BE20]">Puntata</div>
                 <div class="font-black text-base text-white">5,00 €</div>
@@ -2720,20 +3013,40 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
             </div>
 
-            <label class="mt-3 flex items-center justify-between text-xs text-gray-300 cursor-pointer">
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="triggerResultScreenshotUpload('A')" ${closedA || state.loadingResultAI === 'A' ? 'disabled' : ''}
+                class="py-2.5 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                <span>${state.loadingResultAI === 'A' ? '⏳ Lettura...' : '🤖 Verifica AI A'}</span>
+              </button>
+              ${!closedA ? `
+                <button type="button" onclick="openSingleTicketCloseModal('A')"
+                  class="py-2.5 px-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                  <span>🏁 Chiudi A</span>
+                </button>
+              ` : `
+                <button type="button" onclick="reopenSingleTicket('A')"
+                  class="py-2.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-[11px] transition">
+                  Riapri A
+                </button>
+              `}
+            </div>
+
+            <label class="flex items-center justify-between text-xs text-gray-300 cursor-pointer">
               <span>Bonus Multipla Sisal (+3% su 5 / +6% su 6)</span>
               <input type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} onchange="toggleBonusMultipla()" class="w-4 h-4 accent-[#78BE20]" />
             </label>
           </div>
 
+          ${renderAIResultPreviewBox('A')}
+
           <div>
-            ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A')).join('')}
+            ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A', !!closedA)).join('')}
           </div>
         </section>
 
-        <!-- SCHEDINA B -->
-        <section class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-xl">
-          <div class="sisal-pattern p-4 border-b border-white/10">
+        <!-- SCHEDINA B (Verifica AI & Chiusura Separata) -->
+        <section class="rounded-3xl bg-[#1E1E1E] border ${closedB ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
+          <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
               <div>
                 <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina B · Sistema</div>
@@ -2742,7 +3055,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ${bBadge}
             </div>
 
-            <div class="grid grid-cols-3 gap-2 mt-3">
+            <div class="grid grid-cols-3 gap-2">
               <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
                 <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
                 <div class="font-black text-sm text-white">5,00 €</div>
@@ -2757,7 +3070,25 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
             </div>
 
-            <div class="mt-3 p-2.5 rounded-xl bg-black/35 border border-white/5 text-[11px] text-gray-400 space-y-1">
+            <div class="grid grid-cols-2 gap-2">
+              <button type="button" onclick="triggerResultScreenshotUpload('B')" ${closedB || state.loadingResultAI === 'B' ? 'disabled' : ''}
+                class="py-2.5 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                <span>${state.loadingResultAI === 'B' ? '⏳ Lettura...' : '🤖 Verifica AI B'}</span>
+              </button>
+              ${!closedB ? `
+                <button type="button" onclick="openSingleTicketCloseModal('B')"
+                  class="py-2.5 px-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                  <span>🏁 Chiudi B</span>
+                </button>
+              ` : `
+                <button type="button" onclick="reopenSingleTicket('B')"
+                  class="py-2.5 px-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-[11px] transition">
+                  Riapri B
+                </button>
+              `}
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-black/35 border border-white/5 text-[11px] text-gray-400 space-y-1">
               <div class="flex justify-between">
                 <span>6 su 6 (0,50 € × 1 col.):</span>
                 <span class="font-bold text-gray-200">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
@@ -2773,8 +3104,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
           </div>
 
+          ${renderAIResultPreviewBox('B')}
+
           <div>
-            ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B')).join('')}
+            ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B', !!closedB)).join('')}
           </div>
         </section>
       `;
@@ -2904,7 +3237,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     // --- TAB 4: STATISTICHE ---
     function renderStatisticheTab() {
       const history = state.history || [];
-      const currentPicks = state.currentWeek.picks || [];
+      const currentPicks = getSchedineSource().picks || [];
       const txs = state.transactions || [];
 
       const totalWeeks = history.length;
@@ -3001,7 +3334,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }).join('');
 
       const historyAccordionHtml = history.length === 0
-        ? `<div class="text-center py-6 text-xs text-gray-500">Nessuna settimana archiviata ancora. Chiudi la prima settimana dalla tab SCHEDINE.</div>`
+        ? `<div class="text-center py-6 text-xs text-gray-500">Nessuna settimana archiviata ancora. Chiudi le schedine dalla tab SCHEDINE.</div>`
         : history.map(h => {
             const expanded = !!state.expandedHistoryIds[h.id];
             return `
