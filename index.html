@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.4 — Scommesse di Gruppo</title>
+  <title>BOLLETTONE v1.5 — Scommesse di Gruppo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,7 +152,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.4</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.5</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -229,9 +229,6 @@
     import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
     import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
-    // =========================================================================
-    // 1. COSTANTI CAMPIONATI, MERCATI SISAL E CONFIGURAZIONE ESTERNA
-    // =========================================================================
     const LEAGUES = [
       { code: 'ita.1', label: '🇮🇹 ITA Serie A' },
       { code: 'ita.2', label: '🇮🇹 ITA Serie B' },
@@ -307,21 +304,22 @@
 
     let runtimeGeminiKey = GITHUB_GEMINI_API_KEY;
 
-    // =========================================================================
-    // 2. STATO APPLICAZIONE (RELEASE v1.4)
-    // =========================================================================
+    function stripDemoText(str) {
+      return String(str || '').replace(/\s*-?\s*demo\s*-?\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+    }
+
     const state = {
       activeTab: 'gioca',
       user: null,
       cloudConnected: false,
       loadingAI: false,
-      loadingResultAI: null, // 'A' | 'B' | null
+      loadingResultAI: null,
       uploadingReceipts: false,
       checkingReceiptId: null,
       aiPreviewMatches: null,
-      aiResultPreview: null, // { batchId, ticketType, items }
+      aiResultPreview: null,
       selectedPlayerId: getSavedPlayerPref() || 'p1',
-      selectedBatchId: null, // ID della puntata selezionata nella tab SCHEDINE ('draft' oppure id di playedBatches)
+      selectedBatchId: null,
       expandedHistoryIds: {},
       searchDaysAhead: 14,
 
@@ -352,8 +350,8 @@
       },
       currentWeek: {
         weekLabel: getDefaultWeekLabel(),
-        picks: [],          // Bozza nuova giornata in inserimento su GIOCA
-        playedBatches: []   // Elenco delle puntate già giocate su Sisal (isolate dalla bozza in GIOCA)
+        picks: [],
+        playedBatches: []
       },
       history: [],
       transactions: []
@@ -389,8 +387,6 @@
       try { return localStorage.getItem(PLAYER_STORAGE_KEY) || ''; } catch (_) { return ''; }
     }
 
-    // Restituisce l'oggetto "puntata" attualmente selezionato nella tab SCHEDINE
-    // (un elemento di currentWeek.playedBatches oppure la bozza corrente se non ci sono giocate)
     function getActiveSchedineBatch() {
       const batches = Array.isArray(state.currentWeek.playedBatches) ? state.currentWeek.playedBatches : [];
       const draftPicks = Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [];
@@ -431,9 +427,6 @@
       };
     }
 
-    // =========================================================================
-    // 3. FIREBASE FIRESTORE & STORAGE (SYNC REAL-TIME CON PROTEZIONE CONCORRENZA)
-    // =========================================================================
     let db = null;
     let auth = null;
     let storage = null;
@@ -502,7 +495,6 @@
       return Array.from(map.values()).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
     }
 
-    // Migra eventuali vecchie strutture activePlay in playedBatches per retrocompatibilità
     function normalizeWeekData(data = {}) {
       const batches = Array.isArray(data.playedBatches) ? [...data.playedBatches] : [];
       if (data.activePlay && Array.isArray(data.activePlay.picks) && data.activePlay.picks.length > 0) {
@@ -523,7 +515,7 @@
         }
       }
       return {
-        weekLabel: data.weekLabel || getDefaultWeekLabel(),
+        weekLabel: stripDemoText(data.weekLabel || getDefaultWeekLabel()) || getDefaultWeekLabel(),
         picks: Array.isArray(data.picks) ? data.picks : [],
         playedBatches: batches
       };
@@ -591,7 +583,14 @@
       unsubscribers.push(
         onSnapshot(historyCol, (snap) => {
           const list = [];
-          snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+          snap.forEach((d) => {
+            const raw = d.data();
+            list.push({
+              id: d.id,
+              ...raw,
+              weekLabel: stripDemoText(raw.weekLabel || '')
+            });
+          });
           list.sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
           state.history = list;
           render();
@@ -601,7 +600,14 @@
       unsubscribers.push(
         onSnapshot(txCol, (snap) => {
           const list = [];
-          snap.forEach((d) => list.push({ id: d.id, ...d.data() }));
+          snap.forEach((d) => {
+            const raw = d.data();
+            list.push({
+              id: d.id,
+              ...raw,
+              note: stripDemoText(raw.note || '')
+            });
+          });
           list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           state.transactions = list;
           render();
@@ -628,7 +634,7 @@
       try {
         const weekRef = doc(db, 'artifacts', appId, 'public', 'data', 'currentWeek', 'active');
         let payload = {
-          weekLabel: state.currentWeek.weekLabel,
+          weekLabel: stripDemoText(state.currentWeek.weekLabel) || getDefaultWeekLabel(),
           picks: Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [],
           playedBatches: Array.isArray(state.currentWeek.playedBatches) ? state.currentWeek.playedBatches : []
         };
@@ -659,13 +665,14 @@
     }
 
     async function addTransactionToCloud(tx) {
+      const cleanTx = { ...tx, note: stripDemoText(tx.note || '') };
       if (!db || !state.user) {
-        state.transactions.unshift({ id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5), ...tx });
+        state.transactions.unshift({ id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5), ...cleanTx });
         render();
         return;
       }
       try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), tx);
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), cleanTx);
       } catch (err) {
         console.error("Errore salvataggio transazione:", err);
         showToast("Errore salvataggio movimento in cassa.", "error");
@@ -687,13 +694,14 @@
     }
 
     async function addHistoryToCloud(entry) {
+      const cleanEntry = { ...entry, weekLabel: stripDemoText(entry.weekLabel || '') };
       if (!db || !state.user) {
-        state.history.unshift({ id: 'hist_' + Date.now(), ...entry });
+        state.history.unshift({ id: 'hist_' + Date.now(), ...cleanEntry });
         render();
         return;
       }
       try {
-        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), entry);
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), cleanEntry);
       } catch (err) {
         console.error("Errore salvataggio storico:", err);
         showToast("Errore durante l'archiviazione.", "error");
@@ -710,9 +718,6 @@
       badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span class="${txt}">${label}</span>`;
     }
 
-    // =========================================================================
-    // 4. FETCH PARTITE REALI PER CAMPIONATO (ESPN PUBLIC SOCCER API)
-    // =========================================================================
     function formatSingleDayESPN(offsetDays = 0) {
       const d = new Date();
       d.setDate(d.getDate() + offsetDays);
@@ -823,9 +828,6 @@
       }
     }
 
-    // =========================================================================
-    // 5. GEMINI AI — SCREENSHOT GIOCATA, CHECK QUOTE & VERIFICA RISULTATI
-    // =========================================================================
     async function callGeminiWithFallback(payload) {
       const apiKey = (runtimeGeminiKey || "").trim();
       if (!apiKey) {
@@ -1219,9 +1221,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       });
     }
 
-    // =========================================================================
-    // 6. MOTORE DI CALCOLO SCHEDINE (A: SECCA 5€ | B: SISTEMA 6 PARTITE 5€)
-    // =========================================================================
     function computeTickets(customPicks = null) {
       const players = state.settings.players;
       const picks = Array.isArray(customPicks) ? customPicks : (getActiveSchedineBatch().picks || []);
@@ -1380,9 +1379,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       };
     }
 
-    // =========================================================================
-    // 7. AZIONI UTENTE & INTERAZIONI
-    // =========================================================================
     window.switchTab = function(tab) {
       state.activeTab = tab;
       render();
@@ -1587,7 +1583,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return true;
     }
 
-    // Cancella solo dalle partite in preparazione su GIOCA senza mai toccare le puntate già giocate in playedBatches
     window.deletePick = async function(pickId) {
       state.currentWeek.picks = (state.currentWeek.picks || []).filter(p => p.id !== pickId);
       await saveCurrentWeekToCloud(true);
@@ -1595,7 +1590,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast("Giocata rimossa dalla nuova giornata.", "info");
     };
 
-    // Segna la bozza corrente in GIOCA come nuova Puntata Giocata su Sisal e svuota GIOCA per la nuova giornata
     window.markTicketAsPlayed = async function() {
       const picks = state.currentWeek.picks || [];
       if (picks.length === 0) {
@@ -1624,7 +1618,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       state.currentWeek.playedBatches.push(newBatch);
       state.selectedBatchId = newBatch.id;
 
-      // Pulisce la bozza in GIOCA così è subito pronta per una nuova giornata
       state.currentWeek.picks = [];
       state.form = {
         campionato: state.form.campionato || 'ITA Serie A',
@@ -1979,8 +1972,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     window.copyWhatsAppSummary = function() {
       const batch = getActiveSchedineBatch();
       const calc = computeTickets(batch.picks);
+      const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.4 — ${batch.label}*`);
+      lines.push(`⚽ *BOLLETTONE v1.5 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2013,9 +2007,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       document.body.removeChild(ta);
     }
 
-    // =========================================================================
-    // 8. CHIUSURA SEPARATA SCHEDINA A / B -> SALVATAGGIO IN STORICO PUNTATE
-    // =========================================================================
     window.closeModal = function() {
       document.getElementById('modal-root').classList.add('hidden');
     };
@@ -2033,6 +2024,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const tObj = isA ? calc.ticketA : calc.ticketB;
       const suggested = tObj.status === 'won' ? Number(tObj.actualWin || 0) : 0;
       const pendingInTicket = tObj.picks.filter(p => p.status === 'pending').length;
+      const cleanBatchLabel = stripDemoText(batch.label);
 
       const verdictBox = tObj.status === 'won'
         ? `
@@ -2060,7 +2052,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">${autoTriggered ? `Esito Schedina ${ticketType} Completato` : `Chiudi & Verifica Schedina ${ticketType}`}</h3>
-            <p class="text-xs text-gray-400">${escapeHtml(batch.label)} · ${isA ? 'Secca 5,00 €' : 'Sistema 6 (1 err.) 5,00 €'}</p>
+            <p class="text-xs text-gray-400">${escapeHtml(cleanBatchLabel)} · ${isA ? 'Secca 5,00 €' : 'Sistema 6 (1 err.) 5,00 €'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2071,7 +2063,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo vinto (€) — conferma o rettifica manualmente</label>
             <input id="single-ticket-win-input" type="number" step="0.01" min="0" value="${suggested.toFixed(2)}"
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-lg focus:outline-none focus:border-[#78BE20]" />
-            <p class="text-[11px] text-gray-500 mt-1">Confermando, questa schedina viene archiviata subito nella tab <strong>PUNTATE</strong> (Storico Puntate).</p>
+            <p class="text-[11px] text-gray-500 mt-1">Confermando, questa schedina viene salvata in <strong>PUNTATE</strong> con dettaglio A/B.</p>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5">
@@ -2080,7 +2072,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </button>
             <button onclick="confirmSingleTicketClose('${batch.id}', '${ticketType}')"
               class="py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition active:scale-[0.98]">
-              Conferma e Manda in Puntate
+              Conferma e Salva
             </button>
           </div>
         </div>
@@ -2098,6 +2090,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(batch.picks);
       const isA = ticketType === 'A';
       const tObj = isA ? calc.ticketA : calc.ticketB;
+      const cleanBatchLabel = stripDemoText(batch.label);
 
       const closedObj = {
         closedAt: now,
@@ -2109,15 +2102,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (isA) batch.closedA = closedObj;
       else batch.closedB = closedObj;
 
-      // Salva subito un record nello Storico Puntate (history) per questa schedina chiusa
-      const ticketPicksSnapshot = tObj.picks.map(p => ({ ...p }));
+      // Salva lo snapshot completo della puntata includendo sia le partite di A che quelle di B
+      const picksA = calc.ticketA.picks.map(p => ({ ...p }));
+      const picksB = calc.ticketB.picks.map(p => ({ ...p }));
+
       await addHistoryToCloud({
-        weekLabel: `${batch.label} · Schedina ${ticketType} (${isA ? 'Secca' : 'Sistema'})`,
+        weekLabel: `${cleanBatchLabel} · Schedina ${ticketType} (${isA ? 'Secca' : 'Sistema'})`,
         batchId: batch.id,
         ticketType,
         archivedAt: now,
         dateStr,
-        picks: ticketPicksSnapshot,
+        picks: isA ? picksA : picksB,
+        picksA,
+        picksB,
         receipts: (batch.receipts || []).map(r => ({ id: r.id, name: r.name, url: r.url || '' })),
         schedinaA: isA ? {
           quotaTot: Number(tObj.quotaTot.toFixed(2)),
@@ -2136,11 +2133,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         totalWin: winAmt
       });
 
-      // Aggiorna la Cassa per la schedina chiusa (-5,00 € di puntata + eventuale vincita)
       await addTransactionToCloud({
         type: 'bet',
         amount: -5.00,
-        note: `Costo Schedina ${ticketType} (${batch.label})`,
+        note: `Costo Schedina ${ticketType} (${cleanBatchLabel})`,
         date: dateStr,
         createdAt: now
       });
@@ -2149,13 +2145,12 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         await addTransactionToCloud({
           type: 'win',
           amount: winAmt,
-          note: `Vincita Schedina ${ticketType} (${batch.label})`,
+          note: `Vincita Schedina ${ticketType} (${cleanBatchLabel})`,
           date: dateStr,
           createdAt: now + 1
         });
       }
 
-      // Se sia A che B di questa puntata sono ora chiuse, rimuovi la puntata dalle attive in SCHEDINE
       if (batch.closedA && batch.closedB) {
         state.currentWeek.playedBatches = (state.currentWeek.playedBatches || []).filter(b => b.id !== batch.id);
         const remaining = state.currentWeek.playedBatches;
@@ -2235,7 +2230,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const rawDate = document.getElementById('set-balance-date')?.value;
       const dateStr = rawDate ? rawDate.split('-').reverse().join('/') : new Date().toLocaleDateString('it-IT');
-      const noteInput = document.getElementById('set-balance-note')?.value.trim();
+      const noteInput = stripDemoText(document.getElementById('set-balance-note')?.value.trim());
 
       await addTransactionToCloud({
         type: 'adjustment',
@@ -2324,7 +2319,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const rawDate = document.getElementById('cash-date')?.value;
       const dateStr = rawDate ? rawDate.split('-').reverse().join('/') : new Date().toLocaleDateString('it-IT');
-      const noteInput = document.getElementById('cash-note')?.value.trim();
+      const noteInput = stripDemoText(document.getElementById('cash-note')?.value.trim());
 
       if (mode === 'deposit') {
         const playerId = document.getElementById('cash-player').value;
@@ -2361,7 +2356,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 space-y-4">
-          <p class="text-xs text-gray-300">Vuoi eliminare definitivamente il movimento <strong>"${escapeHtml(note)}"</strong> dalla Cassa Comune?</p>
+          <p class="text-xs text-gray-300">Vuoi eliminare definitivamente il movimento <strong>"${escapeHtml(stripDemoText(note))}"</strong> dalla Cassa Comune?</p>
           <div class="grid grid-cols-2 gap-2.5">
             <button onclick="closeModal()" class="py-3 rounded-xl bg-white/5 text-gray-300 font-bold text-xs">Annulla</button>
             <button onclick="confirmDeleteTransaction('${txId}')" class="py-3 rounded-xl bg-red-500 text-white font-extrabold text-xs">Elimina</button>
@@ -2392,14 +2387,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.4 · Firestore + Gemini AI</p>
+            <p class="text-[11px] text-gray-400">Release v1.5 · Firestore + Gemini AI</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 space-y-5 overflow-y-auto">
           <div>
             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Titolo Settimana</label>
-            <input id="settings-week-label" type="text" value="${escapeHtml(state.currentWeek.weekLabel)}"
+            <input id="settings-week-label" type="text" value="${escapeHtml(stripDemoText(state.currentWeek.weekLabel))}"
               class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#78BE20]" />
           </div>
 
@@ -2520,7 +2515,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (bonusEl) state.settings.bonusMultipla = bonusEl.checked;
 
       const weekEl = document.getElementById('settings-week-label');
-      if (weekEl && weekEl.value.trim()) state.currentWeek.weekLabel = weekEl.value.trim();
+      if (weekEl && weekEl.value.trim()) state.currentWeek.weekLabel = stripDemoText(weekEl.value.trim()) || getDefaultWeekLabel();
 
       const minQuotaInput = document.getElementById('cfg-min-quota');
       if (minQuotaInput) {
@@ -2545,12 +2540,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast("Bozza e puntate in corso svuotate.", "info");
     };
 
-    // =========================================================================
-    // 9. RENDERING DELLE 5 TAB
-    // =========================================================================
     function render() {
       const lbl = document.getElementById('header-week-label');
-      if (lbl) lbl.textContent = state.currentWeek.weekLabel;
+      if (lbl) lbl.textContent = stripDemoText(state.currentWeek.weekLabel);
 
       ['gioca', 'schedine', 'puntate', 'cassa', 'statistiche'].forEach(t => {
         const btn = document.getElementById(`nav-${t}`);
@@ -2629,7 +2621,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 1: GIOCA ---
     function renderGiocaTab(calcDraft) {
       if (!state.selectedPlayerId && state.settings.players[0]) {
         state.selectedPlayerId = state.settings.players[0].id;
@@ -2714,7 +2705,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="text-center py-8 px-4 rounded-2xl bg-[#1E1E1E] border border-dashed border-white/10">
             <div class="text-2xl mb-1.5">⚽</div>
             <div class="text-sm font-bold text-gray-300">${hasPlayedBatches ? 'Nuova giornata pronta per l’inserimento' : 'Nessuna giocata inserita'}</div>
-            <p class="text-xs text-gray-500 mt-1">${hasPlayedBatches ? `Hai ${batches.length} puntat${batches.length === 1 ? 'a' : 'e'} già salvat${batches.length === 1 ? 'a' : 'e'} in SCHEDINE. Inserisci qui le partite per la nuova giornata.` : 'Carica uno screenshot Sisal oppure scegli la partita dal campionato.'}</p>
+            <p class="text-xs text-gray-500 mt-1">${hasPlayedBatches ? `Hai ${batches.length} puntat${batches.length === 1 ? 'a già giocata è' : 'e già giocate sono'} protett${batches.length === 1 ? 'a' : 'e'} in SCHEDINE. Inserisci qui le partite per la nuova giornata.` : 'Carica uno screenshot Sisal oppure scegli la partita dal campionato.'}</p>
           </div>
         `
         : picks.slice().reverse().map(pk => {
@@ -2910,7 +2901,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 2: SCHEDINE (SUDDIVISA PER PUNTATE CON MENU/SELETTORE + DATA) ---
     function renderSchedineTab() {
       const batches = Array.isArray(state.currentWeek.playedBatches) ? state.currentWeek.playedBatches : [];
       const draftPicks = Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [];
@@ -2936,7 +2926,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         report.mismatches.forEach(m => { mismatchMap[m.pickId] = m; });
       }
 
-      // Menu selettore puntate (con data/ora)
       const batchSelectorHtml = `
         <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-3.5 space-y-2">
           <div class="flex items-center justify-between">
@@ -2946,6 +2935,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="flex sm:grid sm:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1">
             ${batches.map(b => {
               const isSel = !isDraftView && currentBatch.id === b.id;
+              const cleanBLabel = stripDemoText(b.label);
               const statusTxt = (b.closedA || b.closedB)
                 ? `A:${b.closedA ? 'Chiusa' : 'Aperta'} · B:${b.closedB ? 'Chiusa' : 'Aperta'}`
                 : 'Giocata · Da verificare';
@@ -2956,7 +2946,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       ? 'bg-[#78BE20]/15 border-[#78BE20] text-white'
                       : 'bg-[#121212] hover:bg-[#262626] border-white/10 text-gray-300'
                   }">
-                  <div class="text-xs font-extrabold truncate">${escapeHtml(b.label)}</div>
+                  <div class="text-xs font-extrabold truncate">${escapeHtml(cleanBLabel)}</div>
                   <div class="text-[10px] text-gray-400 truncate mt-0.5">${escapeHtml(statusTxt)}</div>
                 </button>
               `;
@@ -3198,7 +3188,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <section class="rounded-3xl bg-[#1E1E1E] border border-[#78BE20]/40 p-4 space-y-3 shadow-lg">
             <div class="flex items-center justify-between gap-2">
               <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#78BE20] text-[#121212]">
-                ✅ ${escapeHtml(currentBatch.label)}
+                ✅ ${escapeHtml(stripDemoText(currentBatch.label))}
               </span>
               <span class="text-[10px] text-gray-400">
                 A: ${closedA ? 'Chiusa' : 'Aperta'} · B: ${closedB ? 'Chiusa' : 'Aperta'}
@@ -3228,7 +3218,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         `}
 
-        <!-- SCHEDINA A -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${closedA ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
           <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
@@ -3282,7 +3271,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         </section>
 
-        <!-- SCHEDINA B -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${closedB ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
           <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
@@ -3352,7 +3340,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 3: STORICO PUNTATE CHIUSE ---
+    // --- TAB 3: STORICO PUNTATE CHIUSE (CON DETTAGLIO SEPARATO SCHEDINA A & SCHEDINA B) ---
     function renderPuntateStoricoTab() {
       const history = state.history || [];
 
@@ -3361,32 +3349,57 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
             <div class="text-4xl mb-3">🗂️</div>
             <h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2>
-            <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con tutti i dettagli.</p>
+            <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p>
           </div>
         `;
       }
+
+      const renderHistoryPickRows = (list = []) => {
+        if (!Array.isArray(list) || list.length === 0) {
+          return `<div class="text-[11px] text-gray-500 py-1">Nessuna partita registrata.</div>`;
+        }
+        return list.map(pk => `
+          <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
+            <div class="min-w-0 pr-2">
+              <div class="font-bold text-white truncate">
+                ${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}
+                ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[9px] font-bold">⭐ Jolly</span>` : ''}
+              </div>
+              <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
+            </div>
+            <span class="font-black text-[#78BE20] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
+          </div>
+        `).join('');
+      };
 
       return `
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Storico Puntate Chiuse (${history.length})</h2>
-            <span class="text-[10px] text-gray-500">Tocca per dettagli partite</span>
+            <span class="text-[10px] text-gray-500">Tocca per dettaglio schedine</span>
           </div>
 
           ${history.map(h => {
             const expanded = !!state.expandedHistoryIds[h.id];
             const wonAmt = Number(h.totalWin) || 0;
+            const cleanTitle = stripDemoText(h.weekLabel);
+
+            const hasA = !!h.schedinaA;
+            const hasB = !!h.schedinaB;
+            const listA = Array.isArray(h.picksA) ? h.picksA : (hasA ? (h.picks || []) : []);
+            const listB = Array.isArray(h.picksB) ? h.picksB : (hasB ? (h.picks || []) : []);
+
             return `
               <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-lg">
                 <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
                   <div class="min-w-0">
-                    <div class="font-black text-sm text-white truncate">${escapeHtml(h.weekLabel)}</div>
+                    <div class="font-black text-sm text-white truncate">${escapeHtml(cleanTitle)}</div>
                     <div class="text-[11px] text-gray-400 mt-0.5">
-                      ${wonAmt > 0 ? '✅ Schedina Presa' : '❌ Schedina Persa'} · ${escapeHtml(h.dateStr || '')}
+                      ${wonAmt > 0 ? '✅ Schedina Vincente' : '❌ Schedina Perdente'} · ${escapeHtml(h.dateStr || '')}
                     </div>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
-                    <span class="px-2.5 py-1 rounded-xl font-black text-xs ${wonAmt > 0 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-white/5 text-gray-400'}">
+                    <span class="px-2.5 py-1 rounded-xl font-black text-xs ${wonAmt > 0 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-red-500/15 text-red-400'}">
                       ${wonAmt > 0 ? '+' + formatEuro(wonAmt) : '0,00 €'}
                     </span>
                     <span class="text-gray-500 text-xs">${expanded ? '▲' : '▼'}</span>
@@ -3394,18 +3407,40 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 </button>
 
                 ${expanded ? `
-                  <div class="px-4 pb-4 pt-2 border-t border-white/10 space-y-2 bg-[#171717]/60">
-                    ${(h.picks || []).map(pk => `
-                      <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
-                        <div class="min-w-0 pr-2">
-                          <div class="font-bold text-white truncate">
-                            ${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}
+                  <div class="px-4 pb-4 pt-3 border-t border-white/10 space-y-3 bg-[#171717]/70">
+                    ${hasA ? `
+                      <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                        <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+                          <div>
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina A · Secca</div>
+                            <div class="text-xs font-bold text-white">Quota tot. ${Number(h.schedinaA.quotaTot || 0).toFixed(2)}</div>
                           </div>
-                          <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
+                          <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
+                            h.schedinaA.won ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                          }">
+                            ${h.schedinaA.won ? `VINCENTE (+${formatEuro(h.schedinaA.actualWin)})` : 'PERDENTE'}
+                          </span>
                         </div>
-                        <span class="font-black text-[#78BE20] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
+                        ${renderHistoryPickRows(listA)}
                       </div>
-                    `).join('')}
+                    ` : ''}
+
+                    ${hasB ? `
+                      <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                        <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+                          <div>
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina B · Sistema</div>
+                            <div class="text-xs font-bold text-white">${escapeHtml(h.schedinaB.hitsLabel || 'Sistema 6 partite')}</div>
+                          </div>
+                          <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
+                            h.schedinaB.won ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                          }">
+                            ${h.schedinaB.won ? `VINCENTE (+${formatEuro(h.schedinaB.actualWin)})` : 'PERDENTE'}
+                          </span>
+                        </div>
+                        ${renderHistoryPickRows(listB)}
+                      </div>
+                    ` : ''}
                   </div>
                 ` : ''}
               </div>
@@ -3415,7 +3450,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 4: CASSA ---
     function renderCassaTab() {
       const txs = state.transactions || [];
       let totalDeposited = 0;
@@ -3468,12 +3502,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         : txs.map(t => {
             const isPos = t.amount >= 0;
             const icon = t.type === 'deposit' ? '💶' : t.type === 'win' ? '🏆' : t.type === 'bet' ? '🎫' : '⚖️';
+            const cleanNote = stripDemoText(t.note || 'Movimento');
             return `
               <div class="flex items-center justify-between gap-2 py-2.5 border-b border-white/5 last:border-0">
                 <div class="flex items-center gap-2.5 min-w-0 flex-1">
                   <span class="text-base shrink-0">${icon}</span>
                   <div class="min-w-0">
-                    <div class="text-xs font-bold text-white truncate">${escapeHtml(t.note || 'Movimento')}</div>
+                    <div class="text-xs font-bold text-white truncate">${escapeHtml(cleanNote)}</div>
                     <div class="text-[10px] text-gray-500">${escapeHtml(t.date || '')}</div>
                   </div>
                 </div>
@@ -3481,7 +3516,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <span class="font-black text-sm ${isPos ? 'text-[#78BE20]' : 'text-red-400'}">
                     ${isPos ? '+' : ''}${formatEuro(t.amount)}
                   </span>
-                  <button onclick="askDeleteTransaction('${t.id}', '${escapeJs(t.note || 'Movimento')}')" title="Elimina movimento"
+                  <button onclick="askDeleteTransaction('${t.id}', '${escapeJs(cleanNote)}')" title="Elimina movimento"
                     class="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
@@ -3544,7 +3579,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 5: STATISTICHE ---
     function renderStatisticheTab() {
       const history = state.history || [];
       const currentPicks = getActiveSchedineBatch().picks || [];
@@ -3694,9 +3728,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // =========================================================================
-    // 10. UTILITY & TOAST
-    // =========================================================================
     function getPlayerName(id) {
       return state.settings.players.find(x => x.id === id)?.name || 'Giocatore';
     }
