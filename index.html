@@ -3340,21 +3340,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 3: STORICO PUNTATE CHIUSE (CON DETTAGLIO SEPARATO SCHEDINA A & SCHEDINA B) ---
-   function renderPuntateStoricoTab() {
-  const history = state.history || [];
-
-  if (history.length === 0) {
-    return `
-      <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
-        <div class="text-4xl mb-3">🗂️</div>
-        <h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2>
-        <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p>
-      </div>
-    `;
-  }
-
-  const renderHistoryPickRows = (list = []) => {
+    const renderHistoryPickRows = (list = []) => {
     if (!Array.isArray(list) || list.length === 0) {
       return `<div class="text-[11px] text-gray-500 py-1">Nessuna partita registrata.</div>`;
     }
