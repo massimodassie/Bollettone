@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.2 — Scommesse di Gruppo</title>
+  <title>BOLLETTONE v1.3 — Scommesse di Gruppo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,7 +152,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.2</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.3</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -301,7 +301,7 @@
     let runtimeGeminiKey = GITHUB_GEMINI_API_KEY;
 
     // =========================================================================
-    // 2. STATO APPLICAZIONE (RELEASE v1.2)
+    // 2. STATO APPLICAZIONE (RELEASE v1.3)
     // =========================================================================
     const state = {
       activeTab: 'gioca',
@@ -312,7 +312,7 @@
       uploadingReceipts: false,
       checkingReceiptId: null,
       aiPreviewMatches: null,
-      aiResultPreview: null, // { ticketType: 'A'|'B', items: [{ pickId, partita, status, reason }] }
+      aiResultPreview: null, // { ticketType: 'A'|'B', items: [{ pickId, partita, mercato, status, reason }] }
       selectedPlayerId: getSavedPlayerPref() || 'p1',
       expandedHistoryIds: {},
       searchDaysAhead: 14,
@@ -344,8 +344,7 @@
       },
       currentWeek: {
         weekLabel: getDefaultWeekLabel(),
-        picks: [], // Bozza nuova giornata in inserimento su GIOCA
-        // Giocata attiva già effettuata su Sisal (separata dalla nuova bozza in GIOCA)
+        picks: [],
         activePlay: null, // { playedAt, picks, checkedA, checkedB, receipts, receiptCheckReport, closedA, closedB }
         receipts: [],
         receiptCheckReport: null
@@ -370,9 +369,6 @@
       try { return localStorage.getItem(PLAYER_STORAGE_KEY) || ''; } catch (_) { return ''; }
     }
 
-    // Restituisce il blocco su cui lavorare nella tab SCHEDINE:
-    // se esiste una giocata già segnata come "giocata" (activePlay), usa quella;
-    // altrimenti usa le partite attualmente in currentWeek.picks
     function getSchedineSource() {
       if (state.currentWeek.activePlay && Array.isArray(state.currentWeek.activePlay.picks) && state.currentWeek.activePlay.picks.length > 0) {
         return {
@@ -766,22 +762,26 @@
     // 5. GEMINI AI — SCREENSHOT GIOCATA, CHECK QUOTE & VERIFICA RISULTATI
     // =========================================================================
     async function callGeminiWithFallback(payload) {
-      const apiKey = runtimeGeminiKey || "";
-      const models = ['gemini-3.8-flash', 'gemini-3.5-flash-lite'];
+      const apiKey = (runtimeGeminiKey || "").trim();
+      if (!apiKey) {
+        throw new Error("Chiave API Gemini mancante. Inseriscila nelle Impostazioni.");
+      }
+      const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.5-flash-lite'];
       let lastErr = null;
       for (const modelName of models) {
         try {
-          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
           return await fetchWithBackoff(apiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } catch (err) {
+          console.warn(`Tentativo Gemini fallito su ${modelName}:`, err);
           lastErr = err;
         }
       }
-      throw lastErr || new Error("Errore Gemini API");
+      throw lastErr || new Error("Errore chiamando Gemini API");
     }
 
     async function analyzeSisalScreenshot(file) {
@@ -853,7 +853,7 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
         }
       } catch (err) {
         console.error("Errore lettura screenshot AI:", err);
-        showToast("Impossibile analizzare lo screenshot ora. Verifica la connessione o inserisci a mano.", "error");
+        showToast(`Errore AI: ${err.message || "impossibile analizzare lo screenshot."}`, "error");
       } finally {
         state.loadingAI = false;
         render();
@@ -915,18 +915,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const unmatched = [];
 
         items.forEach(item => {
-          const normItem = normalizeMatch(item.partita);
-          const itemTokens = String(item.partita || '').toLowerCase().split(/[-–vs]+/).map(s => s.trim().replace(/[^a-z0-9]/g, '')).filter(Boolean);
-
-          const foundPick = picks.find(pk => {
-            const normPk = normalizeMatch(pk.partita);
-            if (normPk === normItem || normPk.includes(normItem) || normItem.includes(normPk)) return true;
-            if (itemTokens.length >= 2) {
-              return itemTokens.every(tok => tok.length >= 3 && normPk.includes(tok));
-            }
-            return false;
-          });
-
+          const foundPick = findBestMatchingPick(item.partita, picks);
           const rQuota = Number(Number(item.quota).toFixed(2));
           if (!foundPick) {
             unmatched.push({
@@ -968,7 +957,42 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     }
 
-    // Analizza uno screenshot dei risultati Sisal e abbina gli esiti (won/lost/pending) alle partite della schedina A o B
+    function findBestMatchingPick(partitaStr, candidatePicks) {
+      const normItem = normalizeMatch(partitaStr);
+      if (!normItem) return null;
+
+      let exact = candidatePicks.find(pk => {
+        const normPk = normalizeMatch(pk.partita);
+        return normPk === normItem || normPk.includes(normItem) || normItem.includes(normPk);
+      });
+      if (exact) return exact;
+
+      const tokens = String(partitaStr || '')
+        .toLowerCase()
+        .split(/[-–—/]|(?:\bvs\b)/)
+        .map(s => s.trim().replace(/[^a-z0-9]/g, ''))
+        .filter(t => t.length >= 3);
+
+      if (tokens.length >= 2) {
+        exact = candidatePicks.find(pk => {
+          const normPk = normalizeMatch(pk.partita);
+          return tokens.every(tok => normPk.includes(tok));
+        });
+        if (exact) return exact;
+      }
+
+      if (tokens.length >= 1) {
+        exact = candidatePicks.find(pk => {
+          const normPk = normalizeMatch(pk.partita);
+          return tokens.some(tok => tok.length >= 4 && normPk.includes(tok));
+        });
+        if (exact) return exact;
+      }
+
+      return null;
+    }
+
+    // Analizza uno screenshot dei risultati Sisal (o diretta/risultati) e abbina gli esiti alle partite della schedina A o B
     async function analyzeResultsScreenshot(file, ticketType, targetPicks) {
       if (!file || !Array.isArray(targetPicks) || targetPicks.length === 0) return;
       state.loadingResultAI = ticketType;
@@ -976,22 +1000,22 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
 
       try {
-        const base64Data = await fileToBase64(file);
-        const mimeType = file.type || 'image/jpeg';
+        const compressedDataUrl = await compressReceiptImage(file, 1400, 0.85);
+        const base64Data = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
 
         const picksContext = targetPicks.map((pk, idx) =>
           `${idx + 1}. ID="${pk.id}" | Partita="${pk.partita}" | Pronostico="${pk.mercato}"`
         ).join('\n');
 
-        const prompt = `Sei un assistente che legge gli screenshot dei risultati di scommesse Sisal.
+        const prompt = `Sei un assistente che legge gli screenshot dei risultati di scommesse Sisal (o app risultati calcio).
 Ecco le partite presenti in questa schedina:
 ${picksContext}
 
-Osserva lo screenshot allegato (risultati partite, spunte verdi/rosse, icone vinta/persa o partite ancora non giocate/in corso) e per ciascuna partita indica:
-- pickId: l'ID esatto della partita corrispondente dalla lista sopra (se non visibile nello screen, metti "")
+Osserva lo screenshot allegato (risultati finali, spunte verdi/rosse, stato Vincente/Perdente o partite non ancora giocate) e valuta ogni partita della lista sopra che riesci a riconoscere nello screen:
+- pickId: l'ID esatto della partita corrispondente dalla lista sopra
 - partita: nome della partita
-- status: "won" se presa/vincente, "lost" se persa/sbagliata, oppure "pending" se ancora da giocare / in corso / non visibile
-- reason: breve nota di 2-5 parole sul risultato visto nello screen (es. "2-1 finale", "Spunta verde", "Non disputata")
+- status: "won" se l'esito pronosticato è risultato vincente/preso, "lost" se perdente/sbagliato, oppure "pending" se ancora in corso / non iniziata
+- reason: breve motivo (es. "2-1 finale · Presa", "Spunta verde Sisal", "0-0 · Persa", "In corso")
 Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         const payload = {
@@ -999,7 +1023,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             role: "user",
             parts: [
               { text: prompt },
-              { inlineData: { mimeType, data: base64Data } }
+              { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
             ]
           }],
           generationConfig: {
@@ -1034,16 +1058,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const rawOutcomes = Array.isArray(parsed.outcomes) ? parsed.outcomes : [];
 
         const previewItems = [];
+        const usedIds = new Set();
+
         rawOutcomes.forEach(o => {
           let matchedPick = targetPicks.find(pk => pk.id === o.pickId);
           if (!matchedPick) {
-            const normO = normalizeMatch(o.partita);
-            matchedPick = targetPicks.find(pk => {
-              const normPk = normalizeMatch(pk.partita);
-              return normPk && normO && (normPk.includes(normO) || normO.includes(normPk));
-            });
+            matchedPick = findBestMatchingPick(o.partita, targetPicks);
           }
-          if (matchedPick) {
+          if (matchedPick && !usedIds.has(matchedPick.id)) {
+            usedIds.add(matchedPick.id);
             previewItems.push({
               pickId: matchedPick.id,
               partita: matchedPick.partita,
@@ -1055,7 +1078,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         });
 
         if (previewItems.length === 0) {
-          showToast("Nessun esito abbinato dalle partite di questa schedina. Riprova con uno screen più chiaro.", "warning");
+          showToast("Nessun esito abbinato dalle partite di questa schedina. Riprova con uno screen più nitido.", "warning");
         } else {
           state.aiResultPreview = {
             ticketType,
@@ -1065,25 +1088,30 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
       } catch (err) {
         console.error("Errore verifica AI risultati:", err);
-        showToast("Impossibile leggere i risultati dallo screenshot ora.", "error");
+        showToast(`Errore Verifica AI: ${err.message || "impossibile leggere lo screenshot."}`, "error");
       } finally {
         state.loadingResultAI = null;
         render();
       }
     }
 
-    async function fetchWithBackoff(url, options, maxRetries = 4) {
+    async function fetchWithBackoff(url, options, maxRetries = 3) {
       let delay = 1000;
       for (let i = 0; i < maxRetries; i++) {
         try {
           const res = await fetch(url, options);
           if (res.ok) return await res.json();
+          let errDetail = `HTTP ${res.status}`;
+          try {
+            const errJson = await res.json();
+            if (errJson?.error?.message) errDetail = errJson.error.message;
+          } catch (_) {}
           if (res.status === 429 || res.status >= 500) {
             await new Promise(r => setTimeout(r, delay));
             delay *= 2;
             continue;
           }
-          throw new Error(`HTTP ${res.status}`);
+          throw new Error(errDetail);
         } catch (e) {
           if (i === maxRetries - 1) throw e;
           await new Promise(r => setTimeout(r, delay));
@@ -1172,6 +1200,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const aLost = ticketA.filter(x => x.status === 'lost').length;
       const aWon = ticketA.filter(x => x.status === 'won').length;
+      const aAllResolved = ticketA.length > 0 && (aWon + aLost === ticketA.length);
       let statusA = 'pending';
       let actualWinA = 0;
       if (ticketA.length > 0) {
@@ -1221,6 +1250,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const bLost = ticketB.filter(x => x.status === 'lost').length;
       const bWon = ticketB.filter(x => x.status === 'won').length;
+      const bAllResolved = ticketB.length > 0 && (bWon + bLost === ticketB.length);
       let statusB = 'pending';
       let actualWinB = 0;
       let hitsLabelB = `${bWon}/${ticketB.length} prese`;
@@ -1240,6 +1270,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           actualWinB = hit ? Number(hit.win.toFixed(2)) : 0;
           hitsLabelB = '5 su 6! (1 cinquina centrata)';
         }
+      } else if (ticketB.length > 0 && bAllResolved) {
+        if (bLost >= 2) {
+          statusB = 'lost';
+          actualWinB = 0;
+        } else {
+          statusB = 'won';
+          actualWinB = Number(maxWinB.toFixed(2));
+        }
       }
 
       return {
@@ -1254,7 +1292,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           status: statusA,
           actualWin: actualWinA,
           wonCount: aWon,
-          lostCount: aLost
+          lostCount: aLost,
+          allResolved: aAllResolved
         },
         ticketB: {
           picks: ticketB,
@@ -1270,6 +1309,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           actualWin: actualWinB,
           wonCount: bWon,
           lostCount: bLost,
+          allResolved: bAllResolved,
           hitsLabel: hitsLabelB
         }
       };
@@ -1490,16 +1530,35 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return state.currentWeek.picks || [];
     }
 
+    // Imposta esito manuale ("won" / "lost") e, se tutte le partite di Schedina A o B sono state compilate,
+    // propone automaticamente il risultato calcolato (Vinta + soldi vinti o Persa) con conferma/rettifica
     window.setPickStatus = async function(pickId, newStatus) {
       const picks = getMutablePicksArray();
       const pk = picks.find(p => p.id === pickId);
       if (!pk) return;
+
+      const prevStatus = pk.status;
       pk.status = pk.status === newStatus ? 'pending' : newStatus;
+
       await saveCurrentWeekToCloud(true);
       render();
+
+      // Se l'utente ha appena impostato won/lost (non tornato a pending), controlla se A o B è completa
+      if (pk.status !== 'pending' && prevStatus !== pk.status) {
+        const src = getSchedineSource();
+        const calc = computeTickets(src.picks);
+
+        const inA = calc.ticketA.picks.some(x => x.id === pickId);
+        const inB = calc.ticketB.picks.some(x => x.id === pickId);
+
+        if (inA && !src.closedA && calc.ticketA.allResolved) {
+          openSingleTicketCloseModal('A', true);
+        } else if (inB && !src.closedB && calc.ticketB.allResolved) {
+          openSingleTicketCloseModal('B', true);
+        }
+      }
     };
 
-    // Trigger per caricare screenshot risultati AI per Schedina A o Schedina B
     window.triggerResultScreenshotUpload = function(ticketType) {
       const inp = document.getElementById(`result-screen-input-${ticketType}`);
       if (inp) inp.click();
@@ -1532,6 +1591,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const preview = state.aiResultPreview;
       if (!preview || !Array.isArray(preview.items)) return;
 
+      const ticketType = preview.ticketType;
       const picks = getMutablePicksArray();
       let appliedCount = 0;
 
@@ -1546,7 +1606,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       state.aiResultPreview = null;
       await saveCurrentWeekToCloud(true);
       render();
-      showToast(`Applicati ${appliedCount} esiti AI su Schedina ${preview.ticketType}!`, "success");
+      showToast(`Applicati ${appliedCount} esiti AI su Schedina ${ticketType}!`, "success");
+
+      // Se tutti gli esiti della schedina risultano ora compilati, proponi subito la chiusura con calcolo vincita
+      const src = getSchedineSource();
+      const calc = computeTickets(src.picks);
+      if (ticketType === 'A' && !src.closedA && calc.ticketA.allResolved) {
+        openSingleTicketCloseModal('A', true);
+      } else if (ticketType === 'B' && !src.closedB && calc.ticketB.allResolved) {
+        openSingleTicketCloseModal('B', true);
+      }
     };
 
     window.updatePickFinalQuota = async function(pickId, rawVal) {
@@ -1600,7 +1669,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
     };
 
-    // Segna la giocata come GIOCATA su Sisal e libera la tab GIOCA per una nuova giornata
     window.markTicketAsPlayed = async function() {
       const picks = state.currentWeek.picks || [];
       if (picks.length === 0) {
@@ -1612,7 +1680,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const snapshotA = calc.ticketA.picks.map(p => ({ ...p, status: 'pending' }));
       const snapshotB = calc.ticketB.picks.map(p => ({ ...p, status: 'pending' }));
 
-      // Unifica i pick congelati mantenendo status/quota
       const frozenMap = new Map();
       picks.forEach(p => frozenMap.set(p.id, { ...p }));
       [...snapshotA, ...snapshotB].forEach(p => {
@@ -1631,7 +1698,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         closedB: null
       };
 
-      // Pulisce la bozza in GIOCA così è subito pronta per una nuova giornata
       state.currentWeek.picks = [];
       state.currentWeek.receipts = [];
       state.currentWeek.receiptCheckReport = null;
@@ -1842,7 +1908,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(src.picks);
       const isPlayed = src.mode === 'activePlay';
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.2 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
+      lines.push(`⚽ *BOLLETTONE v1.3 — ${state.currentWeek.weekLabel}* ${isPlayed ? '✅ [GIOCATA]' : '📝 [BOZZA]'}`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -1876,7 +1942,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     }
 
     // =========================================================================
-    // 8. CHIUSURA SEPARATA SCHEDINA A / SCHEDINA B & MODALI
+    // 8. CHIUSURA SEPARATA SCHEDINA A / B & IMPOSTAZIONE SALDO CASSA
     // =========================================================================
     window.closeModal = function() {
       document.getElementById('modal-root').classList.add('hidden');
@@ -1887,8 +1953,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       document.getElementById('modal-root').classList.remove('hidden');
     }
 
-    // Chiusura separata per Schedina A ('A') o Schedina B ('B')
-    window.openSingleTicketCloseModal = function(ticketType) {
+    // Modal di proposta risultato / chiusura separata per Schedina A ('A') o Schedina B ('B')
+    window.openSingleTicketCloseModal = function(ticketType, autoTriggered = false) {
       const src = getSchedineSource();
       const calc = computeTickets(src.picks);
       const isA = ticketType === 'A';
@@ -1896,46 +1962,61 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const suggested = tObj.status === 'won' ? Number(tObj.actualWin || 0) : 0;
       const pendingInTicket = tObj.picks.filter(p => p.status === 'pending').length;
 
+      const verdictBox = tObj.status === 'won'
+        ? `
+          <div class="p-4 rounded-2xl bg-[#78BE20]/15 border border-[#78BE20]/50 text-center space-y-1">
+            <div class="text-xs font-black uppercase tracking-wider text-[#78BE20]">🎉 SCHEDINA ${ticketType} PRESA!</div>
+            <div class="text-2xl font-black text-white">${formatEuro(suggested)}</div>
+            <div class="text-[11px] text-gray-300">${isA ? `Quota totale ${tObj.quotaTot.toFixed(2)} × 5,00 €` : escapeHtml(tObj.hitsLabel)}</div>
+          </div>
+        `
+        : tObj.status === 'lost'
+          ? `
+            <div class="p-4 rounded-2xl bg-red-500/15 border border-red-500/40 text-center space-y-1">
+              <div class="text-xs font-black uppercase tracking-wider text-red-400">❌ SCHEDINA ${ticketType} PERSA</div>
+              <div class="text-xl font-black text-white">0,00 €</div>
+              <div class="text-[11px] text-gray-400">${tObj.lostCount} ${tObj.lostCount === 1 ? 'errore' : 'errori'} su ${tObj.picks.length} partite</div>
+            </div>
+          `
+          : `
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+              Ci sono ancora <strong>${pendingInTicket} partit${pendingInTicket === 1 ? 'a' : 'e'}</strong> in sospeso su Schedina ${ticketType}.
+            </div>
+          `;
+
       openModal(`
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h3 class="font-bold text-base text-white">Chiudi & Verifica Schedina ${ticketType}</h3>
+            <h3 class="font-bold text-base text-white">${autoTriggered ? `Esito Schedina ${ticketType} Completato` : `Chiudi & Verifica Schedina ${ticketType}`}</h3>
             <p class="text-xs text-gray-400">${isA ? 'Secca · Puntata 5,00 €' : 'Sistema 6 partite (1 errore) · Puntata 5,00 €'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 space-y-4 overflow-y-auto">
-          ${pendingInTicket > 0 ? `
-            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-              Ci sono ancora <strong>${pendingInTicket} partit${pendingInTicket === 1 ? 'a' : 'e'}</strong> in sospeso su Schedina ${ticketType}. Puoi anche chiudere ora e indicare l'esito finale.
-            </div>
-          ` : ''}
-
-          <div class="p-3 rounded-xl bg-[#121212] border border-white/10 flex items-center justify-between">
-            <span class="text-xs text-gray-400">Stato calcolato</span>
-            <span class="text-xs font-black ${
-              tObj.status === 'won' ? 'text-[#78BE20]' : tObj.status === 'lost' ? 'text-red-400' : 'text-amber-400'
-            }">
-              ${tObj.status === 'won' ? `VINCENTE (${formatEuro(tObj.actualWin)})` : tObj.status === 'lost' ? 'PERDENTE' : 'IN VERIFICA'}
-            </span>
-          </div>
+          ${verdictBox}
 
           <div>
-            <label class="block text-xs font-bold text-gray-200 mb-1.5">Vincita confermata per Schedina ${ticketType} (€)</label>
+            <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo vinto (€) — conferma o rettifica manualmente</label>
             <input id="single-ticket-win-input" type="number" step="0.01" min="0" value="${suggested.toFixed(2)}"
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-lg focus:outline-none focus:border-[#78BE20]" />
+            <p class="text-[11px] text-gray-500 mt-1">Se la schedina è persa lascia 0,00 €. Quando chiudi anche l'altra schedina, Cassa e Storico si aggiornano in automatico.</p>
           </div>
 
-          <button onclick="confirmSingleTicketClose('${ticketType}')"
-            class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
-            Conferma Chiusura Schedina ${ticketType}
-          </button>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button onclick="closeModal()" class="py-3 rounded-xl bg-white/5 text-gray-300 font-bold text-xs">
+              Continua a modificare
+            </button>
+            <button onclick="confirmSingleTicketClose('${ticketType}')"
+              class="py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition active:scale-[0.98]">
+              Conferma Schedina ${ticketType}
+            </button>
+          </div>
         </div>
       `);
     };
 
     window.confirmSingleTicketClose = async function(ticketType) {
-      const winVal = parseFloat(document.getElementById('single-ticket-win-input')?.value || '0');
+      const winVal = parseFloat(String(document.getElementById('single-ticket-win-input')?.value || '0').replace(',', '.'));
       const winAmt = isNaN(winVal) ? 0 : Math.max(0, Number(winVal.toFixed(2)));
       const now = Date.now();
       const dateStr = new Date().toLocaleDateString('it-IT');
@@ -2016,7 +2097,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           });
         }
 
-        // Promuove eventuale nuova bozza già inserita nella tab GIOCA come nuova settimana attiva
         const nextDraftPicks = Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [];
         const nextDraftReceipts = Array.isArray(state.currentWeek.receipts) ? state.currentWeek.receipts : [];
         const nextDraftReport = state.currentWeek.receiptCheckReport || null;
@@ -2050,6 +2130,88 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Schedina ${ticketType} riaperta.`, "info");
     };
 
+    function computeCurrentCassaBalance() {
+      const txs = state.transactions || [];
+      let bal = 0;
+      txs.forEach(t => {
+        bal += Number(t.amount) || 0;
+      });
+      return Number(bal.toFixed(2));
+    }
+
+    // Modal dedicated to setting the exact real Cassa balance directly
+    window.openSetBalanceModal = function() {
+      const currentBal = computeCurrentCassaBalance();
+      const todayIso = new Date().toISOString().slice(0, 10);
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base text-white">Rettifica Diretta Saldo Cassa</h3>
+            <p class="text-xs text-gray-400">Saldo attuale registrato: <strong>${formatEuro(currentBal)}</strong></p>
+          </div>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <form onsubmit="submitSetBalance(event)" class="p-4 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1.5">Nuovo Saldo Reale (€)</label>
+            <input id="set-balance-target" type="number" step="0.01" value="${currentBal.toFixed(2)}" required
+              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-xl focus:outline-none focus:border-[#78BE20]" />
+            <p class="text-[11px] text-gray-400 mt-1">Verrà registrato automaticamente un movimento di rettifica pari alla differenza.</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Data</label>
+              <input id="set-balance-date" type="date" value="${todayIso}"
+                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#78BE20]" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Motivo / Nota</label>
+              <input id="set-balance-note" type="text" placeholder="Es. Allineamento conto Sisal"
+                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs focus:outline-none focus:border-[#78BE20]" />
+            </div>
+          </div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+            Aggiorna Saldo Cassa
+          </button>
+        </form>
+      `);
+    };
+
+    window.submitSetBalance = async function(e) {
+      e.preventDefault();
+      const targetVal = parseFloat(String(document.getElementById('set-balance-target')?.value || '').replace(',', '.'));
+      if (isNaN(targetVal)) {
+        showToast("Inserisci un importo valido per il nuovo saldo.", "error");
+        return;
+      }
+
+      const currentBal = computeCurrentCassaBalance();
+      const delta = Number((targetVal - currentBal).toFixed(2));
+      if (Math.abs(delta) < 0.01) {
+        closeModal();
+        showToast("Il saldo coincide già con l'importo inserito.", "info");
+        return;
+      }
+
+      const rawDate = document.getElementById('set-balance-date')?.value;
+      const dateStr = rawDate ? rawDate.split('-').reverse().join('/') : new Date().toLocaleDateString('it-IT');
+      const noteInput = document.getElementById('set-balance-note')?.value.trim();
+
+      await addTransactionToCloud({
+        type: 'adjustment',
+        amount: delta,
+        note: noteInput || `Rettifica saldo (${formatEuro(currentBal)} → ${formatEuro(targetVal)})`,
+        date: dateStr,
+        createdAt: Date.now()
+      });
+
+      closeModal();
+      showToast(`Saldo cassa aggiornato a ${formatEuro(targetVal)}!`, "success");
+    };
+
     window.openCashModal = function(mode = 'deposit', preselectedPlayerId = '') {
       const isDep = mode === 'deposit';
       const playerOptions = state.settings.players.map(p =>
@@ -2059,7 +2221,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       openModal(`
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
-          <h3 class="font-bold text-base text-white">${isDep ? 'Carica Versamento in Cassa' : 'Prelievo / Rettifica Cassa'}</h3>
+          <h3 class="font-bold text-base text-white">${isDep ? 'Carica Versamento in Cassa' : 'Prelievo / Movimento Manuale'}</h3>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <form onsubmit="submitCashMovement(event, '${mode}')" class="p-4 space-y-4">
@@ -2072,7 +2234,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
           ` : `
             <div>
-              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Tipo Rettifica</label>
+              <label class="block text-xs font-semibold text-gray-300 mb-1.5">Tipo Movimento</label>
               <select id="cash-adjust-sign" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#78BE20]">
                 <option value="-1">Prelievo / Uscita (- €)</option>
                 <option value="1">Rettifica Positiva / Extra (+ €)</option>
@@ -2193,7 +2355,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.2 · Firestore + Storage</p>
+            <p class="text-[11px] text-gray-400">Release v1.3 · Firestore + Gemini AI</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2330,7 +2492,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       await saveSettingsToCloud();
-      await saveCurrentWeekToCloud(true);
+      await saveCurrentWeekToCloud(false);
       closeModal();
       render();
       showToast("Impostazioni salvate!", "success");
@@ -2376,8 +2538,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const main = document.getElementById('main-content');
       if (!main) return;
 
-      if (state.activeTab === 'gioca') main.innerHTML = renderGiocaTab(calc);
-      else if (state.activeTab === 'schedine') main.innerHTML = renderSchedineTab(calc);
+      if (state.activeTab === 'gioca') main.innerHTML = renderGiocaTab(computeTickets(state.currentWeek.picks || []));
+      else if (state.activeTab === 'schedine') main.innerHTML = renderSchedineTab();
       else if (state.activeTab === 'cassa') main.innerHTML = renderCassaTab();
       else if (state.activeTab === 'statistiche') main.innerHTML = renderStatisticheTab();
     }
@@ -2703,7 +2865,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
-    // --- TAB 2: SCHEDINE (VERIFICA AI SEPARATA PER A e B + CHIUSURA SEPARATA) ---
+    // --- TAB 2: SCHEDINE ---
     function renderSchedineTab() {
       const src = getSchedineSource();
       if (src.picks.length === 0) {
@@ -2923,11 +3085,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>`;
 
       return `
-        <!-- Input nascosti per screen risultati AI separati per Schedina A e Schedina B -->
         <input id="result-screen-input-A" type="file" accept="image/*" class="hidden" onchange="handleResultScreenshotChange(event, 'A')" />
         <input id="result-screen-input-B" type="file" accept="image/*" class="hidden" onchange="handleResultScreenshotChange(event, 'B')" />
 
-        <!-- Azioni Rapide -->
         <div class="grid grid-cols-2 gap-2.5">
           <button onclick="copyWhatsAppSummary()" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
             <span>📋</span> Copia WhatsApp
@@ -2943,7 +3103,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           `}
         </div>
 
-        <!-- Report Giocata & Cedolini -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${isPlayed ? 'border-[#78BE20]/50' : 'border-white/10'} p-4 space-y-3 shadow-lg">
           <div class="flex items-center justify-between gap-2">
             <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
@@ -2991,7 +3150,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           ${checkReportHtml}
         </section>
 
-        <!-- SCHEDINA A (Verifica AI & Chiusura Separata) -->
+        <!-- SCHEDINA A -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${closedA ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
           <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
@@ -3044,7 +3203,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         </section>
 
-        <!-- SCHEDINA B (Verifica AI & Chiusura Separata) -->
+        <!-- SCHEDINA B -->
         <section class="rounded-3xl bg-[#1E1E1E] border ${closedB ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
           <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
@@ -3192,7 +3351,12 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       return `
         <div class="rounded-3xl sisal-pattern border border-[#78BE20]/35 p-5 shadow-xl">
-          <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Saldo Attuale Cassa Comune</div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Saldo Attuale Cassa Comune</div>
+            <button onclick="openSetBalanceModal()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-[11px] font-bold text-white transition">
+              ✏️ Imposta Saldo
+            </button>
+          </div>
           <div class="text-4xl font-black mt-1.5 tracking-tight ${currentBalance >= 0 ? 'text-white' : 'text-red-400'}">
             ${formatEuro(currentBalance)}
           </div>
@@ -3212,12 +3376,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2.5 mt-4">
-            <button onclick="openCashModal('deposit')" class="py-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition">
-              + Carica Versamento
+          <div class="grid grid-cols-3 gap-2 mt-4">
+            <button onclick="openCashModal('deposit')" class="py-2.5 px-2 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] transition">
+              + Versamento
             </button>
-            <button onclick="openCashModal('adjustment')" class="py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-xs transition">
-              ⚖️ Prelievo / Rettifica
+            <button onclick="openCashModal('adjustment')" class="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-[11px] transition">
+              ⚖️ Movimento
+            </button>
+            <button onclick="openSetBalanceModal()" class="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[#78BE20] font-bold text-[11px] transition">
+              ✏️ Rettifica Saldo
             </button>
           </div>
         </div>
@@ -3467,7 +3634,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         el.style.opacity = '0';
         el.style.transform = 'translateY(-8px)';
         setTimeout(() => el.remove(), 300);
-      }, 3200);
+      }, 3600);
     }
 
     function syncSystemTheme() {
