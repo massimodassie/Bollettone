@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.5 — Scommesse di Gruppo</title>
+  <title>BOLLETTONE v1.6 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,13 +17,14 @@
             sans: ['Inter', 'system-ui', 'sans-serif'],
           },
           colors: {
-            sisal: {
+            rossonero: {
               bg: '#121212',
-              card: '#1E1E1E',
-              cardHover: '#262626',
-              green: '#78BE20',
-              greenHover: '#89d428',
-              greenDim: 'rgba(120, 190, 32, 0.15)',
+              card: '#1C1517',
+              cardHover: '#261C1F',
+              red: '#C8102E',
+              redBright: '#E01938',
+              redSoft: '#FF6B7D',
+              win: '#22C55E',
             }
           }
         }
@@ -40,16 +41,16 @@
     }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #121212; }
-    ::-webkit-scrollbar-thumb { background: #333333; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb { background: #3a2328; border-radius: 9999px; }
 
-    .sisal-pattern {
-      background-color: #181818;
+    .rossonero-pattern {
+      background-color: #181314;
       background-image: repeating-linear-gradient(
         -45deg,
-        rgba(255, 255, 255, 0.025) 0px,
-        rgba(255, 255, 255, 0.025) 8px,
-        transparent 8px,
-        transparent 16px
+        rgba(200, 16, 46, 0.12) 0px,
+        rgba(200, 16, 46, 0.12) 8px,
+        rgba(18, 18, 18, 0.55) 8px,
+        rgba(18, 18, 18, 0.55) 16px
       );
     }
 
@@ -75,23 +76,23 @@
 
     @media (prefers-color-scheme: light) {
       body {
-        background-color: #f4f6f8 !important;
-        color: #111827 !important;
+        background-color: #f7f3f4 !important;
+        color: #181415 !important;
       }
-      .sisal-pattern {
-        background-color: #eef2e6 !important;
+      .rossonero-pattern {
+        background-color: #f9ecef !important;
         background-image: repeating-linear-gradient(
           -45deg,
-          rgba(120, 190, 32, 0.08) 0px,
-          rgba(120, 190, 32, 0.08) 8px,
+          rgba(200, 16, 46, 0.08) 0px,
+          rgba(200, 16, 46, 0.08) 8px,
           transparent 8px,
           transparent 16px
         ) !important;
       }
       header,
       nav {
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        border-color: rgba(0, 0, 0, 0.08) !important;
+        background-color: rgba(255, 255, 255, 0.96) !important;
+        border-color: rgba(200, 16, 46, 0.16) !important;
       }
       #app h1,
       #app h2,
@@ -99,19 +100,20 @@
       #app .text-white,
       #modal-box h3,
       #modal-box .text-white {
-        color: #111827 !important;
+        color: #181415 !important;
       }
+      #app .bg-\[\#1C1517\],
       #app .bg-\[\#1E1E1E\],
       #app .bg-\[\#171717\],
       #modal-box {
         background-color: #ffffff !important;
-        border-color: rgba(0, 0, 0, 0.1) !important;
+        border-color: rgba(200, 16, 46, 0.14) !important;
       }
       #app .bg-\[\#121212\],
       #modal-box .bg-\[\#121212\] {
-        background-color: #f3f4f6 !important;
+        background-color: #f4eff0 !important;
         border-color: rgba(0, 0, 0, 0.12) !important;
-        color: #111827 !important;
+        color: #181415 !important;
       }
       #app input,
       #app select,
@@ -120,8 +122,8 @@
       #modal-box select,
       #modal-box textarea {
         background-color: #ffffff !important;
-        color: #111827 !important;
-        border-color: rgba(0, 0, 0, 0.18) !important;
+        color: #181415 !important;
+        border-color: rgba(200, 16, 46, 0.25) !important;
       }
       #app .text-gray-300,
       #app .text-gray-400,
@@ -139,20 +141,20 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#78BE20] selection:text-black">
+<body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#C8102E] selection:text-white">
 
   <div id="app" class="max-w-5xl mx-auto min-h-screen flex flex-col relative pb-24">
 
-    <!-- Header Sticky -->
-    <header class="sticky top-0 z-30 bg-[#121212]/95 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
+    <!-- Header Sticky Rossonero -->
+    <header class="sticky top-0 z-30 bg-[#181314]/95 backdrop-blur-md border-b border-[#C8102E]/35 px-4 py-3 flex items-center justify-between">
       <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-[#78BE20] text-[#121212] flex items-center justify-center font-black text-lg shadow-lg shadow-[#78BE20]/25 shrink-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#E01938] to-[#96091F] text-white flex items-center justify-center font-black text-lg shadow-lg shadow-[#C8102E]/35 shrink-0">
           B
         </div>
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#78BE20]/15 text-[#78BE20] border border-[#78BE20]/30 shrink-0">v1.5</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.6</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -162,7 +164,7 @@
         </div>
       </div>
 
-      <button onclick="openSettingsModal()" aria-label="Impostazioni" class="p-2.5 rounded-xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-gray-300 hover:text-white transition active:scale-95 shrink-0">
+      <button onclick="openSettingsModal()" aria-label="Impostazioni" class="p-2.5 rounded-xl bg-[#22191B] hover:bg-[#312226] border border-[#C8102E]/25 text-gray-300 hover:text-white transition active:scale-95 shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -174,7 +176,7 @@
     <main id="main-content" class="flex-1 px-4 pt-4 space-y-5"></main>
 
     <!-- Barra di Navigazione Fissa in Basso (5 tab: GIOCA, SCHEDINE, PUNTATE, CASSA, STATS) -->
-    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#181818]/95 backdrop-blur-lg border-t border-white/10 safe-bottom">
+    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#181314]/95 backdrop-blur-lg border-t border-[#C8102E]/35 safe-bottom">
       <div class="max-w-5xl mx-auto grid grid-cols-5 px-1 pt-1.5">
         <button onclick="switchTab('gioca')" id="nav-gioca" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -188,7 +190,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
           </svg>
           <span class="text-[10px] font-bold tracking-wide">SCHEDINE</span>
-          <span id="badge-schedine" class="hidden absolute top-1 right-3 w-2 h-2 rounded-full bg-[#78BE20]"></span>
+          <span id="badge-schedine" class="hidden absolute top-1 right-3 w-2 h-2 rounded-full bg-[#22C55E]"></span>
         </button>
 
         <button onclick="switchTab('puntate')" id="nav-puntate" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition relative">
@@ -220,7 +222,7 @@
 
   <!-- Modale Riutilizzabile -->
   <div id="modal-root" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div id="modal-box" class="bg-[#1E1E1E] border border-white/10 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"></div>
+    <div id="modal-box" class="bg-[#1C1517] border border-[#C8102E]/35 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"></div>
   </div>
 
   <script type="module">
@@ -713,7 +715,7 @@
       if (!badge) return;
       let dot = 'bg-amber-400 animate-pulse-soft';
       let txt = 'text-gray-400';
-      if (status === 'online') { dot = 'bg-[#78BE20]'; txt = 'text-[#78BE20]'; }
+      if (status === 'online') { dot = 'bg-[#22C55E]'; txt = 'text-[#4ADE80]'; }
       else if (status === 'error') { dot = 'bg-red-500'; txt = 'text-red-400'; }
       badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span class="${txt}">${label}</span>`;
     }
@@ -1937,7 +1939,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 overflow-y-auto flex flex-col items-center gap-3">
           <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="max-h-[60vh] w-auto rounded-2xl border border-white/10 object-contain" />
           <div class="grid grid-cols-2 gap-2 w-full">
-            <button onclick="closeModal(); recheckExistingReceipt('${rc.id}');" class="py-2.5 rounded-xl bg-[#78BE20]/20 text-[#78BE20] font-bold text-xs">
+            <button onclick="closeModal(); recheckExistingReceipt('${rc.id}');" class="py-2.5 rounded-xl bg-[#22C55E]/20 text-[#4ADE80] font-bold text-xs">
               🔍 Verifica quote AI
             </button>
             <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
@@ -1974,7 +1976,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(batch.picks);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.5 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v1.6 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -1989,7 +1991,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         lines.push(`${i + 1}. *${p.partita}* — ${p.mercato} @ *${Number(p.quota).toFixed(2)}*${tag}`);
       });
       lines.push('');
-      lines.push(`🍀 Forza ragazzi!`);
+      lines.push(`🔴⚫ Forza ragazzi!`);
 
       copyTextToClipboard(lines.join('\n'));
       showToast("Riepilogo copiato! Incollalo su WhatsApp.", "success");
@@ -2028,16 +2030,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const verdictBox = tObj.status === 'won'
         ? `
-          <div class="p-4 rounded-2xl bg-[#78BE20]/15 border border-[#78BE20]/50 text-center space-y-1">
-            <div class="text-xs font-black uppercase tracking-wider text-[#78BE20]">🎉 SCHEDINA ${ticketType} PRESA!</div>
+          <div class="p-4 rounded-2xl bg-[#22C55E]/15 border border-[#22C55E]/50 text-center space-y-1">
+            <div class="text-xs font-black uppercase tracking-wider text-[#4ADE80]">🎉 SCHEDINA ${ticketType} PRESA!</div>
             <div class="text-2xl font-black text-white">${formatEuro(suggested)}</div>
             <div class="text-[11px] text-gray-300">${isA ? `Quota totale ${tObj.quotaTot.toFixed(2)} × 5,00 €` : escapeHtml(tObj.hitsLabel)}</div>
           </div>
         `
         : tObj.status === 'lost'
           ? `
-            <div class="p-4 rounded-2xl bg-red-500/15 border border-red-500/40 text-center space-y-1">
-              <div class="text-xs font-black uppercase tracking-wider text-red-400">❌ SCHEDINA ${ticketType} PERSA</div>
+            <div class="p-4 rounded-2xl bg-[#C8102E]/20 border border-[#C8102E]/50 text-center space-y-1">
+              <div class="text-xs font-black uppercase tracking-wider text-[#FF6B7D]">❌ SCHEDINA ${ticketType} PERSA</div>
               <div class="text-xl font-black text-white">0,00 €</div>
               <div class="text-[11px] text-gray-400">${tObj.lostCount} ${tObj.lostCount === 1 ? 'errore' : 'errori'} su ${tObj.picks.length} partite</div>
             </div>
@@ -2062,7 +2064,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div>
             <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo vinto (€) — conferma o rettifica manualmente</label>
             <input id="single-ticket-win-input" type="number" step="0.01" min="0" value="${suggested.toFixed(2)}"
-              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-lg focus:outline-none focus:border-[#78BE20]" />
+              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#4ADE80] font-black text-lg focus:outline-none focus:border-[#C8102E]" />
             <p class="text-[11px] text-gray-500 mt-1">Confermando, questa schedina viene salvata in <strong>PUNTATE</strong> con dettaglio A/B.</p>
           </div>
 
@@ -2071,7 +2073,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               Continua a modificare
             </button>
             <button onclick="confirmSingleTicketClose('${batch.id}', '${ticketType}')"
-              class="py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition active:scale-[0.98]">
+              class="py-3 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-xs transition active:scale-[0.98]">
               Conferma e Salva
             </button>
           </div>
@@ -2187,7 +2189,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1.5">Nuovo Saldo Reale (€)</label>
             <input id="set-balance-target" type="number" step="0.01" value="${currentBal.toFixed(2)}" required
-              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#78BE20]/50 text-[#78BE20] font-black text-xl focus:outline-none focus:border-[#78BE20]" />
+              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#4ADE80] font-black text-xl focus:outline-none focus:border-[#C8102E]" />
             <p class="text-[11px] text-gray-400 mt-1">Verrà registrato automaticamente un movimento di rettifica pari alla differenza.</p>
           </div>
 
@@ -2195,16 +2197,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Data</label>
               <input id="set-balance-date" type="date" value="${todayIso}"
-                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#C8102E]" />
             </div>
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Motivo / Nota</label>
               <input id="set-balance-note" type="text" placeholder="Es. Allineamento conto Sisal"
-                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs focus:outline-none focus:border-[#C8102E]" />
             </div>
           </div>
 
-          <button type="submit" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-sm transition">
             Aggiorna Saldo Cassa
           </button>
         </form>
@@ -2259,14 +2261,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           ${isDep ? `
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Giocatore</label>
-              <select id="cash-player" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#78BE20]">
+              <select id="cash-player" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#C8102E]">
                 ${playerOptions}
               </select>
             </div>
           ` : `
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Tipo Movimento</label>
-              <select id="cash-adjust-sign" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#78BE20]">
+              <select id="cash-adjust-sign" class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold focus:outline-none focus:border-[#C8102E]">
                 <option value="-1">Prelievo / Uscita (- €)</option>
                 <option value="1">Rettifica Positiva / Extra (+ €)</option>
               </select>
@@ -2277,12 +2279,12 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Importo (€)</label>
               <input id="cash-amount" type="number" step="0.50" min="0.50" value="${isDep ? '10.00' : '5.00'}" required
-                class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white font-bold text-base focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-white/15 text-white font-bold text-base focus:outline-none focus:border-[#C8102E]" />
             </div>
             <div>
               <label class="block text-xs font-semibold text-gray-300 mb-1.5">Data</label>
               <input id="cash-date" type="date" value="${todayIso}"
-                class="w-full px-3 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3 py-3 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-medium focus:outline-none focus:border-[#C8102E]" />
             </div>
           </div>
 
@@ -2298,10 +2300,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1.5">Nota (opzionale)</label>
             <input id="cash-note" type="text" placeholder="${isDep ? 'Es. Quota Novembre' : 'Es. Divisione vincita o rettifica'}"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm focus:outline-none focus:border-[#78BE20]" />
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm focus:outline-none focus:border-[#C8102E]" />
           </div>
 
-          <button type="submit" class="w-full py-3.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-sm transition">
             Salva Movimento
           </button>
         </form>
@@ -2358,7 +2360,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <p class="text-xs text-gray-300">Vuoi eliminare definitivamente il movimento <strong>"${escapeHtml(stripDemoText(note))}"</strong> dalla Cassa Comune?</p>
           <div class="grid grid-cols-2 gap-2.5">
             <button onclick="closeModal()" class="py-3 rounded-xl bg-white/5 text-gray-300 font-bold text-xs">Annulla</button>
-            <button onclick="confirmDeleteTransaction('${txId}')" class="py-3 rounded-xl bg-red-500 text-white font-extrabold text-xs">Elimina</button>
+            <button onclick="confirmDeleteTransaction('${txId}')" class="py-3 rounded-xl bg-[#C8102E] text-white font-extrabold text-xs">Elimina</button>
           </div>
         </div>
       `);
@@ -2375,7 +2377,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="flex items-center gap-2">
           <span class="w-6 text-xs font-bold text-gray-500">#${idx + 1}</span>
           <input type="text" data-player-id="${p.id}" value="${escapeHtml(p.name)}"
-            class="settings-player-input flex-1 px-3 py-2 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#78BE20]" />
+            class="settings-player-input flex-1 px-3 py-2 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#C8102E]" />
           ${state.settings.players.length > 2 ? `
             <button type="button" onclick="removePlayerInSettings('${p.id}')" class="p-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold">✕</button>
           ` : ''}
@@ -2386,7 +2388,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.5 · Firestore + Gemini AI</p>
+            <p class="text-[11px] text-gray-400">Release v1.6 Rossonera · Firestore + Gemini AI</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2394,13 +2396,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div>
             <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Titolo Settimana</label>
             <input id="settings-week-label" type="text" value="${escapeHtml(stripDemoText(state.currentWeek.weekLabel))}"
-              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#78BE20]" />
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-medium focus:outline-none focus:border-[#C8102E]" />
           </div>
 
           <div>
             <div class="flex items-center justify-between mb-2">
               <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Colleghi (${state.settings.players.length})</label>
-              <button type="button" onclick="addPlayerInSettings()" class="text-xs font-bold text-[#78BE20] hover:underline">+ Aggiungi</button>
+              <button type="button" onclick="addPlayerInSettings()" class="text-xs font-bold text-[#FF6B7D] hover:underline">+ Aggiungi</button>
             </div>
             <div class="space-y-2">${playersRows}</div>
           </div>
@@ -2410,15 +2412,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <div class="text-xs font-bold text-white">Bonus Multipla Sisal</div>
               <div class="text-[11px] text-gray-400">+3% su 5 eventi, +6% su 6 eventi</div>
             </div>
-            <input id="settings-bonus-toggle" type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} class="w-5 h-5 accent-[#78BE20]" />
+            <input id="settings-bonus-toggle" type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} class="w-5 h-5 accent-[#C8102E]" />
           </label>
 
-          <div class="p-3.5 rounded-2xl border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.03] space-y-1.5">
+          <div class="p-3.5 rounded-2xl border border-white/10 bg-white/[0.03] space-y-1.5">
             <div class="flex items-center justify-between gap-2">
               <label for="cfg-min-quota" class="text-xs font-extrabold uppercase tracking-wider opacity-80">
                 Quota Minima Puntata
               </label>
-              <span class="text-[11px] font-bold text-[#78BE20]">Default: 1.40</span>
+              <span class="text-[11px] font-bold text-[#FF6B7D]">Default: 1.40</span>
             </div>
             <input
               id="cfg-min-quota"
@@ -2426,14 +2428,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               step="0.05"
               min="1.01"
               value="${Number(state.settings.minQuota || 1.40).toFixed(2)}"
-              class="w-full px-3.5 py-2.5 rounded-xl border border-black/15 dark:border-white/15 bg-white dark:bg-[#1E1E1E] font-bold text-sm"
+              class="w-full px-3.5 py-2.5 rounded-xl border border-white/15 bg-[#121212] font-bold text-sm"
             />
             <p class="text-[11px] opacity-65">
               Le puntate con quota inferiore a questo valore vengono segnalate e bloccate.
             </p>
           </div>
 
-          <button onclick="saveSettingsModal()" class="w-full py-3 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-sm transition">
+          <button onclick="saveSettingsModal()" class="w-full py-3 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-sm transition">
             Salva Impostazioni
           </button>
 
@@ -2547,10 +2549,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const btn = document.getElementById(`nav-${t}`);
         if (!btn) return;
         if (state.activeTab === t) {
-          btn.classList.add('text-[#78BE20]');
+          btn.classList.add('text-[#FF6B7D]', 'bg-[#C8102E]/15');
           btn.classList.remove('text-gray-500');
         } else {
-          btn.classList.remove('text-[#78BE20]');
+          btn.classList.remove('text-[#FF6B7D]', 'bg-[#C8102E]/15');
           btn.classList.add('text-gray-500');
         }
       });
@@ -2608,12 +2610,12 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
           ${filtered.slice(0, 40).map(m => `
             <button type="button" onclick="selectMatchFromESPN('${escapeJs(m.partita)}', '${escapeJs(m.dataOra)}')"
-              class="w-full text-left px-3 py-2 rounded-xl bg-[#121212] hover:bg-[#2a2a2a] border border-white/5 flex items-center justify-between gap-2 transition">
+              class="w-full text-left px-3 py-2 rounded-xl bg-[#121212] hover:bg-[#2a1c20] border border-white/5 flex items-center justify-between gap-2 transition">
               <div class="min-w-0">
                 <div class="text-xs font-semibold text-white truncate">${escapeHtml(m.partita)}</div>
                 ${m.campionato ? `<div class="text-[10px] text-gray-500 truncate">${escapeHtml(m.campionato)}</div>` : ''}
               </div>
-              <span class="text-[10px] font-medium text-[#78BE20] shrink-0">${escapeHtml(m.dataOra || m.status)}</span>
+              <span class="text-[10px] font-medium text-[#FF6B7D] shrink-0">${escapeHtml(m.dataOra || m.status)}</span>
             </button>
           `).join('')}
         </div>
@@ -2641,14 +2643,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <button onclick="selectPlayer('${p.id}')"
             class="shrink-0 px-3.5 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-2 ${
               isSel
-                ? 'bg-[#78BE20] text-[#121212] border-[#78BE20] shadow-md shadow-[#78BE20]/20'
-                : 'bg-[#1E1E1E] text-gray-300 border-white/10 hover:bg-[#262626]'
+                ? 'bg-gradient-to-r from-[#C8102E] to-[#9E0B22] text-white border-[#C8102E] shadow-md shadow-[#C8102E]/30'
+                : 'bg-[#1C1517] text-gray-300 border-white/10 hover:bg-[#261C1F]'
             }">
             <span>${escapeHtml(p.name)}</span>
             <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black ${
               isSel
-                ? 'bg-black/20 text-[#121212]'
-                : count >= 2 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-white/10 text-gray-400'
+                ? 'bg-black/25 text-white'
+                : count >= 2 ? 'bg-[#C8102E]/25 text-[#FF6B7D]' : 'bg-white/10 text-gray-400'
             }">${count}/2</span>
           </button>
         `;
@@ -2662,29 +2664,29 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       let aiPreviewHtml = '';
       if (state.aiPreviewMatches && state.aiPreviewMatches.length > 0) {
         aiPreviewHtml = `
-          <div class="rounded-2xl bg-[#121212] border border-[#78BE20]/50 p-3.5 space-y-2.5">
+          <div class="rounded-2xl bg-[#121212] border border-[#C8102E]/50 p-3.5 space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold text-[#78BE20]">✨ Estratte dallo Screenshot (${state.aiPreviewMatches.length})</span>
+              <span class="text-xs font-extrabold text-[#FF6B7D]">✨ Estratte dallo Screenshot (${state.aiPreviewMatches.length})</span>
               <button type="button" onclick="dismissAIPreview()" class="text-xs text-gray-400 hover:text-white">Chiudi</button>
             </div>
             ${state.aiPreviewMatches.map((m, idx) => {
               const tooLow = Number(m.quota) < minQ;
               return `
-                <div class="p-3 rounded-xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                <div class="p-3 rounded-xl bg-[#1C1517] border border-white/10 space-y-2">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                       <div class="font-bold text-xs text-white truncate">${escapeHtml(m.partita)}</div>
                       <div class="text-[11px] text-gray-400 truncate">${escapeHtml(m.mercato)}${m.esito ? ': ' + escapeHtml(m.esito) : ''}</div>
                       ${m.dataOra ? `<div class="text-[10px] text-gray-500">${escapeHtml(m.dataOra)}</div>` : ''}
                     </div>
-                    <span class="px-2 py-1 rounded-lg font-black text-xs shrink-0 ${tooLow ? 'bg-red-500/20 text-red-400' : 'bg-[#78BE20]/20 text-[#78BE20]'}">
+                    <span class="px-2 py-1 rounded-lg font-black text-xs shrink-0 ${tooLow ? 'bg-red-500/20 text-red-400' : 'bg-[#C8102E]/25 text-[#FF6B7D]'}">
                       ${Number(m.quota).toFixed(2)}
                     </span>
                   </div>
                   ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a ${minQ.toFixed(2)} (non consentita)</div>` : ''}
                   <div class="flex gap-2">
                     <button type="button" onclick="confirmAIPick(${idx})" ${tooLow ? 'disabled' : ''}
-                      class="flex-1 py-2 rounded-lg bg-[#78BE20] hover:bg-[#89d428] disabled:opacity-40 text-[#121212] font-extrabold text-[11px] transition">
+                      class="flex-1 py-2 rounded-lg bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-40 text-white font-extrabold text-[11px] transition">
                       ✓ Aggiungi subito (${escapeHtml(getPlayerName(state.selectedPlayerId))})
                     </button>
                     <button type="button" onclick="loadAIPickIntoForm(${idx})"
@@ -2701,7 +2703,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const picksListHtml = picks.length === 0
         ? `
-          <div class="text-center py-8 px-4 rounded-2xl bg-[#1E1E1E] border border-dashed border-white/10">
+          <div class="text-center py-8 px-4 rounded-2xl bg-[#1C1517] border border-dashed border-[#C8102E]/25">
             <div class="text-2xl mb-1.5">⚽</div>
             <div class="text-sm font-bold text-gray-300">${hasPlayedBatches ? 'Nuova giornata pronta per l’inserimento' : 'Nessuna giocata inserita'}</div>
             <p class="text-xs text-gray-500 mt-1">${hasPlayedBatches ? `Hai ${batches.length} puntat${batches.length === 1 ? 'a già giocata è' : 'e già giocate sono'} protett${batches.length === 1 ? 'a' : 'e'} in SCHEDINE. Inserisci qui le partite per la nuova giornata.` : 'Carica uno screenshot Sisal oppure scegli la partita dal campionato.'}</p>
@@ -2710,7 +2712,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         : picks.slice().reverse().map(pk => {
             const isDup = matchCounts[normalizeMatch(pk.partita)] > 1;
             return `
-              <div class="p-3.5 rounded-2xl bg-[#1E1E1E] border ${isDup ? 'border-amber-500/60' : 'border-white/10'} flex items-center justify-between gap-3">
+              <div class="p-3.5 rounded-2xl bg-[#1C1517] border ${isDup ? 'border-amber-500/60' : 'border-white/10'} flex items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center flex-wrap gap-1.5 mb-1">
                     <span class="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-gray-200">${escapeHtml(getPlayerName(pk.playerId))}</span>
@@ -2721,7 +2723,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <div class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(pk.mercato)}</div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <div class="px-2.5 py-1.5 rounded-xl bg-[#78BE20]/15 text-[#78BE20] font-black text-sm">
+                  <div class="px-2.5 py-1.5 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] font-black text-sm">
                     ${Number(pk.quota).toFixed(2)}
                   </div>
                   <button onclick="deletePick('${pk.id}')" aria-label="Elimina" class="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition">
@@ -2736,17 +2738,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       return `
         ${hasPlayedBatches ? `
-          <div class="p-3 rounded-2xl bg-[#78BE20]/10 border border-[#78BE20]/35 flex items-center justify-between gap-2">
-            <div class="text-xs text-[#78BE20] font-semibold">
+          <div class="p-3 rounded-2xl bg-[#C8102E]/15 border border-[#C8102E]/45 flex items-center justify-between gap-2">
+            <div class="text-xs text-[#FF8A98] font-semibold">
               🎟️ ${batches.length} puntat${batches.length === 1 ? 'a già giocata è' : 'e già giocate sono'} protett${batches.length === 1 ? 'a' : 'e'} in <strong>SCHEDINE</strong>. Qui prepari una nuova giornata.
             </div>
-            <button onclick="switchTab('schedine')" class="px-2.5 py-1.5 rounded-xl bg-[#78BE20] text-[#121212] font-extrabold text-[11px] shrink-0">
+            <button onclick="switchTab('schedine')" class="px-2.5 py-1.5 rounded-xl bg-[#C8102E] text-white font-extrabold text-[11px] shrink-0">
               Vedi Schedine
             </button>
           </div>
         ` : ''}
 
-        <div class="p-3.5 rounded-2xl bg-[#1E1E1E] border border-white/10 flex items-center justify-between gap-2">
+        <div class="p-3.5 rounded-2xl bg-[#1C1517] border border-[#C8102E]/25 flex items-center justify-between gap-2">
           <div>
             <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nuova Giornata in Preparazione</div>
             <div class="text-sm font-bold text-white mt-0.5">
@@ -2755,11 +2757,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
           </div>
           ${picks.length > 0 ? `
-            <button onclick="markTicketAsPlayed()" class="px-3 py-2 rounded-xl bg-[#78BE20] text-[#121212] text-xs font-extrabold hover:bg-[#89d428] transition shrink-0">
+            <button onclick="markTicketAsPlayed()" class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] text-white text-xs font-extrabold hover:from-[#E01938] transition shrink-0">
               🎟️ Gioca Ora
             </button>
           ` : `
-            <button onclick="switchTab('schedine')" class="px-3 py-2 rounded-xl bg-[#78BE20]/15 text-[#78BE20] text-xs font-extrabold hover:bg-[#78BE20]/25 transition shrink-0">
+            <button onclick="switchTab('schedine')" class="px-3 py-2 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] text-xs font-extrabold hover:bg-[#C8102E]/30 transition shrink-0">
               Schedine →
             </button>
           `}
@@ -2768,19 +2770,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div>
           <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Chi inserisce le 2 puntate?</span>
-            <button onclick="openSettingsModal()" class="text-[11px] font-semibold text-[#78BE20]">Modifica nomi</button>
+            <button onclick="openSettingsModal()" class="text-[11px] font-semibold text-[#FF6B7D]">Modifica nomi</button>
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             ${playerPills}
           </div>
         </div>
 
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-4 shadow-xl">
+        <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-4 shadow-xl">
           <input id="screenshot-file-input" type="file" accept="image/*" class="hidden" onchange="handleScreenshotChange(event)" />
           <button type="button" onclick="triggerScreenshotUpload()" ${state.loadingAI ? 'disabled' : ''}
-            class="w-full py-3.5 px-4 rounded-2xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-black text-sm shadow-lg shadow-[#78BE20]/20 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60">
+            class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-black text-sm shadow-lg shadow-[#C8102E]/30 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60">
             ${state.loadingAI ? `
-              <svg class="animate-spin h-5 w-5 text-[#121212]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
               </svg>
@@ -2803,14 +2805,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <div class="col-span-2">
                 <label class="text-[11px] font-bold text-gray-400 block mb-1">1. Campionato</label>
                 <select onchange="onLeagueChange(this.value)"
-                  class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#78BE20]">
+                  class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#C8102E]">
                   ${LEAGUES.map(l => `<option value="${l.code}" ${state.selectedLeague === l.code ? 'selected' : ''}>${l.label}</option>`).join('')}
                 </select>
               </div>
               <div>
                 <label class="text-[11px] font-bold text-gray-400 block mb-1">Orizzonte</label>
                 <select onchange="onSearchDaysChange(this.value)"
-                  class="w-full px-2 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#78BE20]">
+                  class="w-full px-2 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#C8102E]">
                   <option value="7" ${state.searchDaysAhead === 7 ? 'selected' : ''}>7 gg</option>
                   <option value="14" ${state.searchDaysAhead === 14 ? 'selected' : ''}>14 gg</option>
                   <option value="30" ${state.searchDaysAhead === 30 ? 'selected' : ''}>30 gg</option>
@@ -2822,7 +2824,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <input type="text" placeholder="🔍 2. Cerca squadra (es. Milan, Juve, Chelsea)..."
                 value="${escapeHtml(state.matchSearchQuery)}"
                 oninput="onMatchSearchInput(this.value)"
-                class="w-full px-3 py-2 rounded-xl bg-[#121212] border border-white/10 text-white text-xs placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3 py-2 rounded-xl bg-[#121212] border border-white/10 text-white text-xs placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
               <div id="espn-matches-list">
                 ${buildESPNMatchesListHtml()}
               </div>
@@ -2835,14 +2837,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <input type="text" required placeholder="Es. Genoa - Milan  oppure  Vicenza - Cremonese"
                 value="${escapeHtml(state.form.partita)}"
                 oninput="updateFormField('partita', this.value)"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+                class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-[11px] font-semibold text-gray-400 mb-1">3. Tipologia Scommessa</label>
                 <select onchange="onMarketChange(this.value)"
-                  class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-[#78BE20]">
+                  class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-[#C8102E]">
                   ${MARKETS.map(m => `<option value="${m.key}" ${state.form.mercato === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
                 </select>
               </div>
@@ -2851,7 +2853,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <input type="text" required placeholder="Es. 2, 1X, GOAL + OVER"
                   value="${escapeHtml(state.form.esito)}"
                   oninput="updateFormField('esito', this.value)"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm font-semibold placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
               </div>
             </div>
 
@@ -2860,8 +2862,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <button type="button" onclick="selectOutcomeSuggestion('${escapeJs(s)}')"
                   class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
                     state.form.esito === s
-                      ? 'bg-[#78BE20] text-[#121212] border-[#78BE20]'
-                      : 'bg-[#121212] text-gray-300 border-white/10 hover:border-[#78BE20]/50'
+                      ? 'bg-[#C8102E] text-white border-[#C8102E]'
+                      : 'bg-[#121212] text-gray-300 border-white/10 hover:border-[#C8102E]/50'
                   }">${escapeHtml(s)}</button>
               `).join('')}
             </div>
@@ -2872,14 +2874,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <input type="number" step="0.01" min="${minQ.toFixed(2)}" required placeholder="1.75"
                   value="${escapeHtml(state.form.quota)}"
                   oninput="updateFormField('quota', this.value)"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-[#78BE20] font-black text-base placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-[#FF6B7D] font-black text-base placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
               </div>
               <div>
                 <label class="block text-[11px] font-semibold text-gray-400 mb-1">Data / Ora (opz.)</label>
                 <input type="text" placeholder="Es. 08/11 - 15:00"
                   value="${escapeHtml(state.form.dataOra)}"
                   oninput="updateFormField('dataOra', this.value)"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#78BE20]" />
+                  class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
               </div>
             </div>
 
@@ -2887,7 +2889,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ⛔ Regola Bollettone: non sono ammesse quote inferiori a ${minQ.toFixed(2)}!
             </div>
 
-            <button type="submit" class="w-full py-3.5 rounded-xl bg-white hover:bg-gray-200 text-[#121212] font-extrabold text-sm transition active:scale-[0.98]">
+            <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-sm transition active:scale-[0.98]">
               + Aggiungi Puntata per ${escapeHtml(getPlayerName(state.selectedPlayerId))}
             </button>
           </form>
@@ -2906,11 +2908,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       if (batches.length === 0 && draftPicks.length === 0) {
         return `
-          <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
+          <div class="text-center py-12 px-5 rounded-3xl bg-[#1C1517] border border-white/10">
             <div class="text-4xl mb-3">🎫</div>
             <h2 class="text-lg font-black text-white">Nessuna schedina da verificare</h2>
             <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Inserisci le partite nella tab GIOCA e premi <strong>Segna come Giocata</strong> per trovarle qui.</p>
-            <button onclick="switchTab('gioca')" class="mt-5 px-5 py-3 rounded-xl bg-[#78BE20] text-[#121212] font-extrabold text-xs">Vai a GIOCA</button>
+            <button onclick="switchTab('gioca')" class="mt-5 px-5 py-3 rounded-xl bg-[#C8102E] text-white font-extrabold text-xs">Vai a GIOCA</button>
           </div>
         `;
       }
@@ -2926,10 +2928,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       const batchSelectorHtml = `
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-3.5 space-y-2">
+        <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-3.5 space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Seleziona Puntata / Sessione</span>
-            <span class="text-[10px] text-[#78BE20] font-bold">${batches.length} giocat${batches.length === 1 ? 'a' : 'e'}</span>
+            <span class="text-[10px] text-[#FF6B7D] font-bold">${batches.length} giocat${batches.length === 1 ? 'a' : 'e'}</span>
           </div>
           <div class="flex sm:grid sm:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1">
             ${batches.map(b => {
@@ -2942,8 +2944,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <button type="button" onclick="selectBatchInSchedine('${b.id}')"
                   class="shrink-0 sm:shrink text-left p-2.5 rounded-2xl border transition ${
                     isSel
-                      ? 'bg-[#78BE20]/15 border-[#78BE20] text-white'
-                      : 'bg-[#121212] hover:bg-[#262626] border-white/10 text-gray-300'
+                      ? 'bg-[#C8102E]/20 border-[#C8102E] text-white'
+                      : 'bg-[#121212] hover:bg-[#261C1F] border-white/10 text-gray-300'
                   }">
                   <div class="text-xs font-extrabold truncate">${escapeHtml(cleanBLabel)}</div>
                   <div class="text-[10px] text-gray-400 truncate mt-0.5">${escapeHtml(statusTxt)}</div>
@@ -2956,7 +2958,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 class="shrink-0 sm:shrink text-left p-2.5 rounded-2xl border transition ${
                   isDraftView
                     ? 'bg-amber-400/15 border-amber-400 text-white'
-                    : 'bg-[#121212] hover:bg-[#262626] border-white/10 text-gray-300'
+                    : 'bg-[#121212] hover:bg-[#261C1F] border-white/10 text-gray-300'
                 }">
                 <div class="text-xs font-extrabold truncate text-amber-300">📝 Bozza Nuova Giornata</div>
                 <div class="text-[10px] text-gray-400 truncate mt-0.5">${draftPicks.length} partite · Non ancora giocata</div>
@@ -2970,11 +2972,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const isChecked = !!(currentBatch[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
         const mm = mismatchMap[pk.id];
         return `
-          <div class="p-3.5 border-b border-white/5 last:border-0 transition ${mm ? 'bg-amber-500/10' : isChecked ? 'bg-[#78BE20]/5' : ''}">
+          <div class="p-3.5 border-b border-white/5 last:border-0 transition ${mm ? 'bg-amber-500/10' : isChecked ? 'bg-[#C8102E]/5' : ''}">
             <div class="flex items-start gap-3">
               <button onclick="toggleCheckSisal('${ticketType}', '${pk.id}')" ${isDraftView ? 'disabled' : ''} title="Spunta quando inserita su Sisal"
                 class="mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition ${
-                  isChecked ? 'bg-[#78BE20] border-[#78BE20] text-[#121212]' : 'border-gray-600 bg-[#121212] text-transparent'
+                  isChecked ? 'bg-[#C8102E] border-[#C8102E] text-white' : 'border-gray-600 bg-[#121212] text-transparent'
                 }">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
@@ -2990,7 +2992,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       ${isTicketClosed || isDraftView ? 'disabled' : ''}
                       title="Quota definitiva (modifica dopo lettura cedolino)"
                       onchange="updatePickFinalQuota('${pk.id}', this.value)"
-                      class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#78BE20]'} font-black text-xs text-right focus:outline-none focus:border-[#78BE20]" />
+                      class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#FF6B7D]'} font-black text-xs text-right focus:outline-none focus:border-[#C8102E]" />
                   </div>
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
@@ -3013,20 +3015,20 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <div class="flex items-center justify-between gap-2 mt-2.5">
                   <div class="flex items-center gap-1.5 min-w-0">
                     <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] font-semibold text-gray-300 truncate">${escapeHtml(pk.playerName)}</span>
-                    ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[10px] font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
+                    ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-[10px] font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
                     <button onclick="setPickStatus('${pk.id}', 'won')" ${isTicketClosed || isDraftView ? 'disabled' : ''}
                       class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
                         pk.status === 'won'
-                          ? 'bg-[#78BE20] text-[#121212] border-[#78BE20]'
-                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#78BE20]'
+                          ? 'bg-[#22C55E] text-[#09150D] border-[#22C55E]'
+                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#4ADE80]'
                       }">✅ Presa</button>
                     <button onclick="setPickStatus('${pk.id}', 'lost')" ${isTicketClosed || isDraftView ? 'disabled' : ''}
                       class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
                         pk.status === 'lost'
-                          ? 'bg-red-500 text-white border-red-400'
-                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-red-400'
+                          ? 'bg-[#C8102E] text-white border-[#FF6B7D]'
+                          : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#FF6B7D]'
                       }">❌ Persa</button>
                   </div>
                 </div>
@@ -3040,20 +3042,20 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         if (!state.aiResultPreview || state.aiResultPreview.ticketType !== ticketType || state.aiResultPreview.batchId !== currentBatch.id) return '';
         const items = state.aiResultPreview.items || [];
         return `
-          <div class="m-3 p-3 rounded-2xl bg-[#121212] border border-[#78BE20]/50 space-y-2.5">
+          <div class="m-3 p-3 rounded-2xl bg-[#121212] border border-[#C8102E]/50 space-y-2.5">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold text-[#78BE20]">🤖 Esiti letti da Screen — Schedina ${ticketType}</span>
+              <span class="text-xs font-extrabold text-[#FF6B7D]">🤖 Esiti letti da Screen — Schedina ${ticketType}</span>
               <button type="button" onclick="dismissAIResultPreview()" class="text-xs text-gray-400 hover:text-white">✕</button>
             </div>
             <div class="space-y-1.5">
               ${items.map((it, idx) => {
                 const stBadge = it.status === 'won'
-                  ? '<span class="px-2 py-0.5 rounded bg-[#78BE20] text-[#121212] font-black text-[10px]">✅ Presa</span>'
+                  ? '<span class="px-2 py-0.5 rounded bg-[#22C55E] text-[#09150D] font-black text-[10px]">✅ Presa</span>'
                   : it.status === 'lost'
-                    ? '<span class="px-2 py-0.5 rounded bg-red-500 text-white font-black text-[10px]">❌ Persa</span>'
+                    ? '<span class="px-2 py-0.5 rounded bg-[#C8102E] text-white font-black text-[10px]">❌ Persa</span>'
                     : '<span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-[10px]">⏳ In attesa</span>';
                 return `
-                  <div class="p-2 rounded-xl bg-[#1E1E1E] border border-white/10 flex items-center justify-between gap-2">
+                  <div class="p-2 rounded-xl bg-[#1C1517] border border-white/10 flex items-center justify-between gap-2">
                     <div class="min-w-0">
                       <div class="text-xs font-bold text-white truncate">${escapeHtml(it.partita)}</div>
                       <div class="text-[10px] text-gray-400 truncate">${escapeHtml(it.mercato)}${it.reason ? ' · ' + escapeHtml(it.reason) : ''}</div>
@@ -3066,7 +3068,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               }).join('')}
             </div>
             <button type="button" onclick="applyAIResultPreview()"
-              class="w-full py-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs transition">
+              class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-xs transition">
               Applica esiti a Schedina ${ticketType}
             </button>
           </div>
@@ -3077,20 +3079,20 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const closedB = currentBatch.closedB;
 
       const aBadge = closedA
-        ? `<span class="px-2.5 py-1 rounded-lg ${closedA.win > 0 ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'} text-xs font-black">CHIUSA ${closedA.win > 0 ? '+' + formatEuro(closedA.win) : '0,00 €'}</span>`
+        ? `<span class="px-2.5 py-1 rounded-lg ${closedA.win > 0 ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E]/25 text-[#FF6B7D]'} text-xs font-black">CHIUSA ${closedA.win > 0 ? '+' + formatEuro(closedA.win) : '0,00 €'}</span>`
         : calc.ticketA.status === 'won'
-          ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketA.actualWin)}</span>`
+          ? `<span class="px-2.5 py-1 rounded-lg bg-[#22C55E] text-[#09150D] text-xs font-black">VINCENTE ${formatEuro(calc.ticketA.actualWin)}</span>`
           : calc.ticketA.status === 'lost'
-            ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
-            : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Quota ${calc.ticketA.quotaTot.toFixed(2)}</span>`;
+            ? `<span class="px-2.5 py-1 rounded-lg bg-[#C8102E]/25 text-[#FF6B7D] text-xs font-black">PERDENTE</span>`
+            : `<span class="px-2.5 py-1 rounded-lg border border-[#C8102E]/60 bg-[#C8102E]/15 text-[#FF8A98] text-xs font-black">Quota ${calc.ticketA.quotaTot.toFixed(2)}</span>`;
 
       const bBadge = closedB
-        ? `<span class="px-2.5 py-1 rounded-lg ${closedB.win > 0 ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'} text-xs font-black">CHIUSA ${closedB.win > 0 ? '+' + formatEuro(closedB.win) : '0,00 €'}</span>`
+        ? `<span class="px-2.5 py-1 rounded-lg ${closedB.win > 0 ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E]/25 text-[#FF6B7D]'} text-xs font-black">CHIUSA ${closedB.win > 0 ? '+' + formatEuro(closedB.win) : '0,00 €'}</span>`
         : calc.ticketB.status === 'won'
-          ? `<span class="px-2.5 py-1 rounded-lg bg-[#78BE20] text-[#121212] text-xs font-black">VINCENTE ${formatEuro(calc.ticketB.actualWin)}</span>`
+          ? `<span class="px-2.5 py-1 rounded-lg bg-[#22C55E] text-[#09150D] text-xs font-black">VINCENTE ${formatEuro(calc.ticketB.actualWin)}</span>`
           : calc.ticketB.status === 'lost'
-            ? `<span class="px-2.5 py-1 rounded-lg bg-red-500/20 text-red-400 text-xs font-black">PERDENTE</span>`
-            : `<span class="px-2.5 py-1 rounded-lg border border-[#78BE20]/60 bg-[#78BE20]/10 text-[#78BE20] text-xs font-black">Sistema 1 errore</span>`;
+            ? `<span class="px-2.5 py-1 rounded-lg bg-[#C8102E]/25 text-[#FF6B7D] text-xs font-black">PERDENTE</span>`
+            : `<span class="px-2.5 py-1 rounded-lg border border-[#C8102E]/60 bg-[#C8102E]/15 text-[#FF8A98] text-xs font-black">Sistema 1 errore</span>`;
 
       let checkReportHtml = '';
       if (report) {
@@ -3099,9 +3101,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const matchedCount = Array.isArray(report.matched) ? report.matched.length : 0;
 
         checkReportHtml = `
-          <div class="p-3 rounded-2xl border ${hasMismatches ? 'bg-amber-500/10 border-amber-500/40' : 'bg-[#78BE20]/10 border-[#78BE20]/35'} space-y-2">
+          <div class="p-3 rounded-2xl border ${hasMismatches ? 'bg-amber-500/10 border-amber-500/40' : 'bg-[#22C55E]/10 border-[#22C55E]/35'} space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-extrabold ${hasMismatches ? 'text-amber-300' : 'text-[#78BE20]'}">
+              <span class="text-xs font-extrabold ${hasMismatches ? 'text-amber-300' : 'text-[#4ADE80]'}">
                 ${hasMismatches ? `⚠️ Check Quote: ${report.mismatches.length} differenz${report.mismatches.length === 1 ? 'a' : 'e'} su cedolino` : `✅ Check Quote: tutte allineate (${matchedCount} OK)`}
               </span>
               <button type="button" onclick="dismissReceiptReport()" class="text-[11px] text-gray-400 hover:text-white">✕</button>
@@ -3151,7 +3153,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   </button>
                   <div class="p-1.5 flex items-center justify-between gap-1">
                     <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis ? 'disabled' : ''}
-                      class="flex-1 py-1 rounded-lg bg-[#78BE20]/15 hover:bg-[#78BE20]/25 text-[#78BE20] font-bold text-[10px] transition">
+                      class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-[10px] transition">
                       ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
                     </button>
                     <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
@@ -3169,25 +3171,25 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         ${batchSelectorHtml}
 
         <div class="grid grid-cols-2 gap-2.5">
-          <button onclick="copyWhatsAppSummary()" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-white/10 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+          <button onclick="copyWhatsAppSummary()" class="py-3 px-3 rounded-2xl bg-[#1C1517] hover:bg-[#261C1F] border border-[#C8102E]/25 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
             <span>📋</span> Copia WhatsApp
           </button>
           ${isDraftView ? `
-            <button onclick="markTicketAsPlayed()" class="py-3 px-3 rounded-2xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+            <button onclick="markTicketAsPlayed()" class="py-3 px-3 rounded-2xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
               <span>🎟️</span> Segna come Giocata
             </button>
           ` : `
-            <button onclick="switchTab('gioca')" class="py-3 px-3 rounded-2xl bg-[#1E1E1E] hover:bg-[#2a2a2a] border border-[#78BE20]/40 text-[#78BE20] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
+            <button onclick="switchTab('gioca')" class="py-3 px-3 rounded-2xl bg-[#1C1517] hover:bg-[#261C1F] border border-[#C8102E]/45 text-[#FF6B7D] font-extrabold text-xs flex items-center justify-center gap-1.5 transition active:scale-[0.98]">
               <span>➕</span> Prepara Nuova
             </button>
           `}
         </div>
 
         ${!isDraftView ? `
-          <section class="rounded-3xl bg-[#1E1E1E] border border-[#78BE20]/40 p-4 space-y-3 shadow-lg">
+          <section class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/40 p-4 space-y-3 shadow-lg">
             <div class="flex items-center justify-between gap-2">
-              <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#78BE20] text-[#121212]">
-                ✅ ${escapeHtml(stripDemoText(currentBatch.label))}
+              <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C8102E] text-white">
+                🔴⚫ ${escapeHtml(stripDemoText(currentBatch.label))}
               </span>
               <span class="text-[10px] text-gray-400">
                 A: ${closedA ? 'Chiusa' : 'Aperta'} · B: ${closedB ? 'Chiusa' : 'Aperta'}
@@ -3217,23 +3219,23 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         `}
 
-        <section class="rounded-3xl bg-[#1E1E1E] border ${closedA ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
-          <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
+        <section class="rounded-3xl bg-[#1C1517] border ${closedA ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+          <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
               <div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina A · Secca</div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
                 <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
               </div>
               ${aBadge}
             </div>
 
             <div class="grid grid-cols-2 gap-2.5">
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
-                <div class="text-[10px] font-semibold text-[#78BE20]">Puntata</div>
+              <div class="p-2.5 rounded-xl bg-black/45 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#FF8A98]">Puntata</div>
                 <div class="font-black text-base text-white">5,00 €</div>
               </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
-                <div class="text-[10px] font-semibold text-[#78BE20]">Vincita potenziale</div>
+              <div class="p-2.5 rounded-xl bg-black/45 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#FF8A98]">Vincita potenziale</div>
                 <div class="font-black text-base text-white">${formatEuro(calc.ticketA.potentialWin)}</div>
               </div>
             </div>
@@ -3241,16 +3243,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             ${!isDraftView ? `
               <div class="grid grid-cols-2 gap-2">
                 <button type="button" onclick="triggerResultScreenshotUpload('A')" ${closedA || state.loadingResultAI === 'A' ? 'disabled' : ''}
-                  class="py-2.5 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                  class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/10 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
                   <span>${state.loadingResultAI === 'A' ? '⏳ Lettura...' : '🤖 Verifica AI A'}</span>
                 </button>
                 ${!closedA ? `
                   <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'A')"
-                    class="py-2.5 px-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
                     <span>🏁 Chiudi A</span>
                   </button>
                 ` : `
-                  <div class="py-2.5 px-2.5 rounded-xl bg-[#78BE20]/15 text-[#78BE20] font-extrabold text-[11px] text-center">
+                  <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
                     ✅ Chiusa in Puntate
                   </div>
                 `}
@@ -3259,7 +3261,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
             <label class="flex items-center justify-between text-xs text-gray-300 cursor-pointer">
               <span>Bonus Multipla Sisal (+3% su 5 / +6% su 6)</span>
-              <input type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} onchange="toggleBonusMultipla()" class="w-4 h-4 accent-[#78BE20]" />
+              <input type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} onchange="toggleBonusMultipla()" class="w-4 h-4 accent-[#C8102E]" />
             </label>
           </div>
 
@@ -3270,27 +3272,27 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         </section>
 
-        <section class="rounded-3xl bg-[#1E1E1E] border ${closedB ? 'border-[#78BE20]/40' : 'border-white/10'} overflow-hidden shadow-xl">
-          <div class="sisal-pattern p-4 border-b border-white/10 space-y-3">
+        <section class="rounded-3xl bg-[#1C1517] border ${closedB ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+          <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
             <div class="flex items-center justify-between gap-2">
               <div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-[#78BE20]">Schedina B · Sistema</div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
                 <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
               </div>
               ${bBadge}
             </div>
 
             <div class="grid grid-cols-3 gap-2">
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+              <div class="p-2.5 rounded-xl bg-black/45 border border-white/5 text-center">
                 <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
                 <div class="font-black text-sm text-white">5,00 €</div>
               </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
+              <div class="p-2.5 rounded-xl bg-black/45 border border-white/5 text-center">
                 <div class="text-[10px] font-semibold text-amber-400">Min (5/6)</div>
                 <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.minWin)}</div>
               </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-center">
-                <div class="text-[10px] font-semibold text-[#78BE20]">Max (6/6)</div>
+              <div class="p-2.5 rounded-xl bg-black/45 border border-white/5 text-center">
+                <div class="text-[10px] font-semibold text-[#4ADE80]">Max (6/6)</div>
                 <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.maxWin)}</div>
               </div>
             </div>
@@ -3298,23 +3300,23 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             ${!isDraftView ? `
               <div class="grid grid-cols-2 gap-2">
                 <button type="button" onclick="triggerResultScreenshotUpload('B')" ${closedB || state.loadingResultAI === 'B' ? 'disabled' : ''}
-                  class="py-2.5 px-2.5 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                  class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/10 disabled:opacity-50 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
                   <span>${state.loadingResultAI === 'B' ? '⏳ Lettura...' : '🤖 Verifica AI B'}</span>
                 </button>
                 ${!closedB ? `
                   <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'B')"
-                    class="py-2.5 px-2.5 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
                     <span>🏁 Chiudi B</span>
                   </button>
                 ` : `
-                  <div class="py-2.5 px-2.5 rounded-xl bg-[#78BE20]/15 text-[#78BE20] font-extrabold text-[11px] text-center">
+                  <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
                     ✅ Chiusa in Puntate
                   </div>
                 `}
               </div>
             ` : ''}
 
-            <div class="p-2.5 rounded-xl bg-black/35 border border-white/5 text-[11px] text-gray-400 space-y-1">
+            <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 text-[11px] text-gray-400 space-y-1">
               <div class="flex justify-between">
                 <span>6 su 6 (0,50 € × 1 col.):</span>
                 <span class="font-bold text-gray-200">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
@@ -3325,7 +3327,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
               <div class="flex justify-between pt-1 border-t border-white/5">
                 <span>Stato sistema:</span>
-                <span class="font-bold text-[#78BE20]">${escapeHtml(calc.ticketB.hitsLabel)}</span>
+                <span class="font-bold text-[#FF8A98]">${escapeHtml(calc.ticketB.hitsLabel)}</span>
               </div>
             </div>
           </div>
@@ -3344,7 +3346,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       if (history.length === 0) {
         return `
-          <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
+          <div class="text-center py-12 px-5 rounded-3xl bg-[#1C1517] border border-white/10">
             <div class="text-4xl mb-3">🗂️</div>
             <h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2>
             <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p>
@@ -3361,11 +3363,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="min-w-0 pr-2">
               <div class="font-bold text-white truncate">
                 ${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}
-                ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#78BE20]/20 text-[#78BE20] text-[9px] font-bold">⭐ Jolly</span>` : ''}
+                ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-[9px] font-bold">⭐ Jolly</span>` : ''}
               </div>
               <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
             </div>
-            <span class="font-black text-[#78BE20] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
+            <span class="font-black text-[#FF6B7D] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
           </div>
         `).join('');
       };
@@ -3399,7 +3401,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             const winValB = Number(infoB.actualWin ?? (wonB ? infoB.maxWin : 0) ?? 0);
 
             return `
-              <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-lg">
+              <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 overflow-hidden shadow-lg">
                 <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
                   <div class="min-w-0">
                     <div class="font-black text-sm text-white truncate">${escapeHtml(cleanTitle)}</div>
@@ -3408,7 +3410,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     </div>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
-                    <span class="px-2.5 py-1 rounded-xl font-black text-xs ${wonAmt > 0 ? 'bg-[#78BE20]/20 text-[#78BE20]' : 'bg-red-500/15 text-red-400'}">
+                    <span class="px-2.5 py-1 rounded-xl font-black text-xs ${wonAmt > 0 ? 'bg-[#22C55E]/20 text-[#4ADE80]' : 'bg-[#C8102E]/20 text-[#FF6B7D]'}">
                       ${wonAmt > 0 ? '+' + formatEuro(wonAmt) : '0,00 €'}
                     </span>
                     <span class="text-gray-500 text-xs">${expanded ? '▲' : '▼'}</span>
@@ -3418,14 +3420,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 ${expanded ? `
                   <div class="px-4 pb-4 pt-3 border-t border-white/10 space-y-3 bg-[#171717]/70">
                     ${showA ? `
-                      <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                      <div class="p-3 rounded-2xl bg-[#1C1517] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina A · Secca</div>
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina A · Secca</div>
                             <div class="text-xs font-bold text-white">Quota tot. ${Number(infoA.quotaTot || 0).toFixed(2)}</div>
                           </div>
                           <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                            wonA ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                            wonA ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E]/25 text-[#FF6B7D]'
                           }">
                             ${wonA ? `VINCENTE (+${formatEuro(winValA)})` : 'PERDENTE'}
                           </span>
@@ -3435,14 +3437,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     ` : ''}
 
                     ${showB ? `
-                      <div class="p-3 rounded-2xl bg-[#1E1E1E] border border-white/10 space-y-2">
+                      <div class="p-3 rounded-2xl bg-[#1C1517] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#78BE20]">Schedina B · Sistema</div>
+                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina B · Sistema</div>
                             <div class="text-xs font-bold text-white">${escapeHtml(infoB.hitsLabel || 'Sistema 6 partite')}</div>
                           </div>
                           <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
-                            wonB ? 'bg-[#78BE20] text-[#121212]' : 'bg-red-500/20 text-red-400'
+                            wonB ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E]/25 text-[#FF6B7D]'
                           }">
                             ${wonB ? `VINCENTE (+${formatEuro(winValB)})` : 'PERDENTE'}
                           </span>
@@ -3490,7 +3492,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         return `
           <div class="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
             <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center font-bold text-xs text-white">
+              <div class="w-8 h-8 rounded-full bg-[#C8102E]/20 border border-[#C8102E]/40 flex items-center justify-center font-bold text-xs text-[#FF8A98]">
                 ${escapeHtml(p.name.slice(0, 2).toUpperCase())}
               </div>
               <div>
@@ -3500,7 +3502,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
             <div class="flex items-center gap-2.5">
               <span class="font-black text-sm text-white">${formatEuro(dep)}</span>
-              <button onclick="openCashModal('deposit', '${p.id}')" class="px-2.5 py-1 rounded-lg bg-[#78BE20]/15 text-[#78BE20] text-xs font-bold hover:bg-[#78BE20]/25">+ Versa</button>
+              <button onclick="openCashModal('deposit', '${p.id}')" class="px-2.5 py-1 rounded-lg bg-[#C8102E]/20 text-[#FF8A98] text-xs font-bold hover:bg-[#C8102E]/30">+ Versa</button>
             </div>
           </div>
         `;
@@ -3522,7 +3524,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <span class="font-black text-sm ${isPos ? 'text-[#78BE20]' : 'text-red-400'}">
+                  <span class="font-black text-sm ${isPos ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'}">
                     ${isPos ? '+' : ''}${formatEuro(t.amount)}
                   </span>
                   <button onclick="askDeleteTransaction('${t.id}', '${escapeJs(cleanNote)}')" title="Elimina movimento"
@@ -3537,7 +3539,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           }).join('');
 
       return `
-        <div class="rounded-3xl sisal-pattern border border-[#78BE20]/35 p-5 shadow-xl">
+        <div class="rounded-3xl rossonero-pattern border border-[#C8102E]/45 p-5 shadow-xl">
           <div class="flex items-center justify-between gap-2">
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Saldo Attuale Cassa Comune</div>
             <button onclick="openSetBalanceModal()" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-[11px] font-bold text-white transition">
@@ -3555,35 +3557,145 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
             <div>
               <div class="text-[10px] text-gray-400 uppercase font-semibold">Speso</div>
-              <div class="font-bold text-sm text-red-400 mt-0.5">-${formatEuro(totalBet)}</div>
+              <div class="font-bold text-sm text-[#FF6B7D] mt-0.5">-${formatEuro(totalBet)}</div>
             </div>
             <div>
               <div class="text-[10px] text-gray-400 uppercase font-semibold">Vinto</div>
-              <div class="font-bold text-sm text-[#78BE20] mt-0.5">+${formatEuro(totalWon)}</div>
+              <div class="font-bold text-sm text-[#4ADE80] mt-0.5">+${formatEuro(totalWon)}</div>
             </div>
           </div>
 
           <div class="grid grid-cols-3 gap-2 mt-4">
-            <button onclick="openCashModal('deposit')" class="py-2.5 px-2 rounded-xl bg-[#78BE20] hover:bg-[#89d428] text-[#121212] font-extrabold text-[11px] transition">
+            <button onclick="openCashModal('deposit')" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-[11px] transition">
               + Versamento
             </button>
             <button onclick="openCashModal('adjustment')" class="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 font-bold text-[11px] transition">
               ⚖️ Movimento
             </button>
-            <button onclick="openSetBalanceModal()" class="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[#78BE20] font-bold text-[11px] transition">
+            <button onclick="openSetBalanceModal()" class="py-2.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[#FF8A98] font-bold text-[11px] transition">
               ✏️ Rettifica Saldo
             </button>
           </div>
         </div>
 
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4">
+        <div class="rounded-3xl bg-[#1C1517] border border-white/10 p-4">
           <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Versamenti per Utente</h3>
           ${playerDepositsHtml}
         </div>
 
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4">
+        <div class="rounded-3xl bg-[#1C1517] border border-white/10 p-4">
           <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Storico Movimenti Cassa (${txs.length})</h3>
           ${txListHtml}
+        </div>
+      `;
+    }
+
+    // --- TAB 5: STATISTICHE + 2 GRAFICI (ISTOGRAMMA DIVERGENTE PRESE/PERSE PER PERSONA + ANDAMENTO BILANCIO) ---
+    function renderDivergentPlayerChart(playerStats) {
+      if (!playerStats || playerStats.length === 0) {
+        return `<div class="text-xs text-gray-500 py-6 text-center">Nessun dato giocatore disponibile.</div>`;
+      }
+
+      const maxAbs = Math.max(
+        1,
+        ...playerStats.map(p => Math.max(p.won, p.lost))
+      );
+
+      const colsHtml = playerStats.map(ps => {
+        const wonPct = Math.min(100, (ps.won / maxAbs) * 100);
+        const lostPct = Math.min(100, (ps.lost / maxAbs) * 100);
+        const net = ps.won - ps.lost;
+        const netColor = net > 0 ? 'text-[#4ADE80]' : net < 0 ? 'text-[#FF6B7D]' : 'text-gray-400';
+
+        return `
+          <div class="flex flex-col items-center min-w-[64px] flex-1">
+            <div class="text-[10px] font-black text-[#4ADE80] h-4">${ps.won > 0 ? `+${ps.won}` : '0'}</div>
+
+            <!-- Metà superiore: sale verso l'alto per le prese -->
+            <div class="w-full h-24 flex items-end justify-center pt-1">
+              <div class="w-7 sm:w-8 rounded-t-lg bg-gradient-to-t from-[#16A34A] to-[#4ADE80] transition-all duration-500"
+                style="height: ${wonPct}%"></div>
+            </div>
+
+            <!-- Linea zero centrale -->
+            <div class="w-full h-0.5 bg-[#C8102E]/60"></div>
+
+            <!-- Metà inferiore: scende verso il basso per le perse -->
+            <div class="w-full h-24 flex items-start justify-center pb-1">
+              <div class="w-7 sm:w-8 rounded-b-lg bg-gradient-to-b from-[#E01938] to-[#88081C] transition-all duration-500"
+                style="height: ${lostPct}%"></div>
+            </div>
+
+            <div class="text-[10px] font-black text-[#FF6B7D] h-4">${ps.lost > 0 ? `-${ps.lost}` : '0'}</div>
+            <div class="text-[11px] font-extrabold text-white truncate max-w-full mt-1">${escapeHtml(ps.name.split(' ')[0])}</div>
+            <div class="text-[10px] font-bold ${netColor}">${net > 0 ? `+${net}` : net}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/10 space-y-3">
+          <div class="flex items-center justify-between gap-2 text-[10px] font-bold">
+            <span class="text-[#4ADE80]">▲ Sopra zero: Puntate Prese</span>
+            <span class="text-[#FF6B7D]">▼ Sotto zero: Puntate Perse</span>
+          </div>
+          <div class="flex items-end justify-between gap-2 overflow-x-auto no-scrollbar pt-1">
+            ${colsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProfitTrendChart(history) {
+      const closedList = (history || []).slice().reverse();
+      if (closedList.length === 0) {
+        return `<div class="text-xs text-gray-500 py-6 text-center">Chiudi almeno una schedina per vedere l'andamento del bilancio.</div>`;
+      }
+
+      let runningNet = 0;
+      const points = closedList.map((h, idx) => {
+        const stake = Number(h.totalStake) || 5;
+        const win = Number(h.totalWin) || 0;
+        runningNet = Number((runningNet + (win - stake)).toFixed(2));
+        return {
+          idx: idx + 1,
+          label: h.dateStr || `#${idx + 1}`,
+          runningNet,
+          win
+        };
+      });
+
+      const maxAbsVal = Math.max(10, ...points.map(p => Math.abs(p.runningNet)));
+
+      const barsHtml = points.map(pt => {
+        const isPos = pt.runningNet >= 0;
+        const pct = Math.min(100, (Math.abs(pt.runningNet) / maxAbsVal) * 100);
+        return `
+          <div class="flex flex-col items-center min-w-[54px] flex-1">
+            <div class="text-[9px] font-black ${isPos ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'} mb-1">
+              ${isPos ? '+' : ''}${pt.runningNet.toFixed(0)}€
+            </div>
+            <div class="w-full h-28 flex items-end justify-center bg-white/[0.02] rounded-xl p-1">
+              <div class="w-6 rounded-t-md transition-all duration-500 ${
+                isPos
+                  ? 'bg-gradient-to-t from-[#C8102E] to-[#FF6B7D]'
+                  : 'bg-gradient-to-t from-[#7F1D1D] to-[#EF4444]'
+              }" style="height: ${Math.max(8, pct)}%"></div>
+            </div>
+            <div class="text-[9px] text-gray-400 font-semibold mt-1 truncate max-w-full">${escapeHtml(pt.label)}</div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/10 space-y-2">
+          <div class="flex items-center justify-between text-[10px] text-gray-400">
+            <span>Profitto netto progressivo (€)</span>
+            <span class="font-bold text-[#FF8A98]">${points.length} chiusur${points.length === 1 ? 'a' : 'e'}</span>
+          </div>
+          <div class="flex items-end justify-between gap-2 overflow-x-auto no-scrollbar pt-1">
+            ${barsHtml}
+          </div>
         </div>
       `;
     }
@@ -3652,34 +3764,34 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <div>
                   <div class="font-bold text-sm text-white">${escapeHtml(ps.name)}</div>
                   <div class="text-[11px] text-gray-400">
-                    <span class="text-[#78BE20] font-bold">${ps.won} prese</span> · <span class="text-red-400 font-bold">${ps.lost} perse</span> (${ps.total} tot)
+                    <span class="text-[#4ADE80] font-bold">${ps.won} prese</span> · <span class="text-[#FF6B7D] font-bold">${ps.lost} perse</span> (${ps.total} tot)
                   </div>
                 </div>
               </div>
               <div class="text-right">
-                <div class="font-black text-lg text-[#78BE20] leading-none">${ps.hitRate.toFixed(0)}%</div>
+                <div class="font-black text-lg text-[#FF6B7D] leading-none">${ps.hitRate.toFixed(0)}%</div>
                 <div class="text-[10px] text-gray-500 mt-0.5">Precisione</div>
               </div>
             </div>
 
             <div class="w-full h-2 rounded-full bg-white/5 overflow-hidden">
-              <div class="h-full rounded-full bg-[#78BE20] transition-all duration-500" style="width: ${ps.hitRate}%"></div>
+              <div class="h-full rounded-full bg-gradient-to-r from-[#C8102E] to-[#FF6B7D] transition-all duration-500" style="width: ${ps.hitRate}%"></div>
             </div>
 
             <div class="grid grid-cols-4 gap-1.5 pt-1 text-center">
-              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+              <div class="p-1.5 rounded-lg bg-[#1C1517]">
                 <div class="text-[9px] text-gray-500 uppercase">Q. Media</div>
                 <div class="text-xs font-bold text-white">${ps.avgPlayed > 0 ? ps.avgPlayed.toFixed(2) : '-'}</div>
               </div>
-              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+              <div class="p-1.5 rounded-lg bg-[#1C1517]">
                 <div class="text-[9px] text-gray-500 uppercase">Q. Presa</div>
-                <div class="text-xs font-bold text-[#78BE20]">${ps.avgWon > 0 ? ps.avgWon.toFixed(2) : '-'}</div>
+                <div class="text-xs font-bold text-[#4ADE80]">${ps.avgWon > 0 ? ps.avgWon.toFixed(2) : '-'}</div>
               </div>
-              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+              <div class="p-1.5 rounded-lg bg-[#1C1517]">
                 <div class="text-[9px] text-gray-500 uppercase">Max Presa</div>
                 <div class="text-xs font-bold text-amber-400">${ps.maxWon > 0 ? ps.maxWon.toFixed(2) : '-'}</div>
               </div>
-              <div class="p-1.5 rounded-lg bg-[#1E1E1E]">
+              <div class="p-1.5 rounded-lg bg-[#1C1517]">
                 <div class="text-[9px] text-gray-500 uppercase">Versato</div>
                 <div class="text-xs font-bold text-white">${ps.deposited.toFixed(0)} €</div>
               </div>
@@ -3689,19 +3801,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }).join('');
 
       return `
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-3">
+        <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-3">
           <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Statistiche Globali Gruppo</h2>
 
           <div class="grid grid-cols-2 gap-2.5">
             <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
               <div class="text-[11px] text-gray-400">Profitto Netto</div>
-              <div class="font-black text-xl mt-0.5 ${netProfit >= 0 ? 'text-[#78BE20]' : 'text-red-400'}">
+              <div class="font-black text-xl mt-0.5 ${netProfit >= 0 ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'}">
                 ${netProfit >= 0 ? '+' : ''}${formatEuro(netProfit)}
               </div>
             </div>
             <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
               <div class="text-[11px] text-gray-400">ROI Totale</div>
-              <div class="font-black text-xl mt-0.5 ${roi >= 0 ? 'text-[#78BE20]' : 'text-red-400'}">
+              <div class="font-black text-xl mt-0.5 ${roi >= 0 ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'}">
                 ${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%
               </div>
             </div>
@@ -3714,11 +3826,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
               <div class="text-[9px] text-gray-400 uppercase">Win A</div>
-              <div class="font-black text-sm text-[#78BE20] mt-0.5">${winRateA.toFixed(0)}%</div>
+              <div class="font-black text-sm text-[#4ADE80] mt-0.5">${winRateA.toFixed(0)}%</div>
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
               <div class="text-[9px] text-gray-400 uppercase">Win B</div>
-              <div class="font-black text-sm text-[#78BE20] mt-0.5">${winRateB.toFixed(0)}%</div>
+              <div class="font-black text-sm text-[#4ADE80] mt-0.5">${winRateB.toFixed(0)}%</div>
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
               <div class="text-[9px] text-gray-400 uppercase">Hit Match</div>
@@ -3727,9 +3839,27 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         </div>
 
-        <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 p-4 space-y-3">
+        <!-- Grafico 1: Istogramma Divergente Prese (+) / Perse (-) per Persona -->
+        <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Statistiche per Utente</h2>
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Prese (+) vs Perse (-) per Persona</h2>
+            <span class="text-[10px] text-[#FF8A98] font-bold">Istogramma Giocatori</span>
+          </div>
+          ${renderDivergentPlayerChart(playerStats)}
+        </div>
+
+        <!-- Grafico 2: Andamento Profitto Netto nel Tempo -->
+        <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Andamento Profitto Netto</h2>
+            <span class="text-[10px] text-gray-500">Storico chiusure</span>
+          </div>
+          ${renderProfitTrendChart(history)}
+        </div>
+
+        <div class="rounded-3xl bg-[#1C1517] border border-white/10 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Classifica Precisione Utenti</h2>
             <span class="text-[10px] text-gray-500">Include esiti live</span>
           </div>
           ${leaderboardHtml}
@@ -3765,10 +3895,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (!container) return;
       const el = document.createElement('div');
       const colors = {
-        success: 'bg-[#78BE20] text-[#121212] font-bold',
-        error: 'bg-red-500 text-white font-bold',
+        success: 'bg-[#22C55E] text-[#09150D] font-bold',
+        error: 'bg-[#C8102E] text-white font-bold',
         warning: 'bg-amber-400 text-[#121212] font-bold',
-        info: 'bg-[#2a2a2a] text-white border border-white/15 font-semibold'
+        info: 'bg-[#2A1D20] text-white border border-[#C8102E]/40 font-semibold'
       };
       el.className = `px-4 py-3 rounded-2xl text-xs shadow-2xl pointer-events-auto transition-all duration-300 ${colors[type] || colors.info}`;
       el.textContent = message;
