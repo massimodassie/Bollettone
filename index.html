@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.7 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v1.8 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -154,7 +154,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 flex-wrap">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.7</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.8</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -320,6 +320,7 @@
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'bollettone-sisal-v2';
     const PLAYER_STORAGE_KEY = 'bollettone_selected_player_id';
+    const REMEMBER_AUTH_KEY = 'bollettone_remember_auth_v1';
 
     let activeFirebaseConfig = null;
     try {
@@ -338,10 +339,32 @@
       return String(str || '').replace(/\s*-?\s*demo\s*-?\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
     }
 
+    function getSavedAuthPref() {
+      try {
+        const raw = localStorage.getItem(REMEMBER_AUTH_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.email && parsed.password) return parsed;
+      } catch (_) {}
+      return null;
+    }
+
+    function setSavedAuthPref(email, password) {
+      try {
+        localStorage.setItem(REMEMBER_AUTH_KEY, JSON.stringify({ email, password }));
+      } catch (_) {}
+    }
+
+    function clearSavedAuthPref() {
+      try {
+        localStorage.removeItem(REMEMBER_AUTH_KEY);
+      } catch (_) {}
+    }
+
     const state = {
       activeTab: 'gioca',
       user: null,
-      authRole: 'readonly', // 'admin' | 'user' | 'readonly'
+      authRole: 'readonly',
       authPlayerId: '',
       authDisplayName: '',
       cloudConnected: false,
@@ -370,7 +393,6 @@
         dataOra: ''
       },
 
-      // Verifica esplicita: p1 = Massimo Dassie, p2 = Paolo Zanette
       settings: {
         players: [
           { id: 'p1', name: 'Massimo Dassie' },
@@ -484,6 +506,7 @@
     let unsubscribers = [];
     let isSavingWeek = false;
     let pendingWeekSave = false;
+    let triedAutoLogin = false;
 
     async function resolveUserRole(user) {
       if (!user || user.isAnonymous || !db) {
@@ -540,7 +563,20 @@
           storage = null;
         }
 
-        if (!customConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        const savedCreds = getSavedAuthPref();
+        if (!customConfig && savedCreds && !triedAutoLogin) {
+          triedAutoLogin = true;
+          try {
+            await signInWithEmailAndPassword(auth, savedCreds.email, savedCreds.password);
+          } catch (_) {
+            clearSavedAuthPref();
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await signInWithCustomToken(auth, __initial_auth_token);
+            } else if (!auth.currentUser) {
+              await signInAnonymously(auth);
+            }
+          }
+        } else if (!customConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
         } else if (!auth.currentUser) {
           await signInAnonymously(auth);
@@ -572,6 +608,7 @@
     window.openAuthModal = function() {
       if (state.user && !state.user.isAnonymous) {
         const playerLabel = getPlayerName(state.authPlayerId);
+        const isRemembered = !!getSavedAuthPref();
         openModal(`
           <div class="p-4 border-b border-white/10 flex items-center justify-between">
             <div>
@@ -581,7 +618,7 @@
             <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
           </div>
           <div class="p-4 space-y-4">
-            <div class="p-3.5 rounded-2xl bg-[#121212] border border-[#C8102E]/35 space-y-1 text-xs">
+            <div class="p-3.5 rounded-2xl bg-[#121212] border border-[#C8102E]/35 space-y-1.5 text-xs">
               <div class="flex justify-between">
                 <span class="text-gray-400">Ruolo:</span>
                 <strong class="${isAdmin() ? 'text-[#4ADE80]' : 'text-[#FF8A98]'} uppercase">${escapeHtml(state.authRole)}</strong>
@@ -589,6 +626,10 @@
               <div class="flex justify-between">
                 <span class="text-gray-400">Giocatore collegato:</span>
                 <strong class="text-white">${escapeHtml(playerLabel)} (${escapeHtml(state.authPlayerId || 'Tutti')})</strong>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-400">Accesso automatico:</span>
+                <strong class="${isRemembered ? 'text-[#4ADE80]' : 'text-gray-300'}">${isRemembered ? 'Attivo su questo dispositivo' : 'Non salvato'}</strong>
               </div>
             </div>
             <button onclick="logoutUser()" class="w-full py-3 rounded-xl bg-[#C8102E] hover:bg-[#E01938] text-white font-extrabold text-xs transition">
@@ -599,6 +640,7 @@
         return;
       }
 
+      const savedCreds = getSavedAuthPref();
       openModal(`
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
@@ -610,14 +652,23 @@
         <form onsubmit="submitLoginEmail(event)" class="p-4 space-y-4">
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1.5">Email</label>
-            <input id="login-email-input" type="email" required placeholder="nome@esempio.it"
+            <input id="login-email-input" type="email" required value="${escapeHtml(savedCreds?.email || '')}" placeholder="nome@esempio.it"
               class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm focus:outline-none focus:border-[#C8102E]" />
           </div>
           <div>
             <label class="block text-xs font-semibold text-gray-300 mb-1.5">Password</label>
-            <input id="login-password-input" type="password" required placeholder="••••••••"
+            <input id="login-password-input" type="password" required value="${escapeHtml(savedCreds?.password || '')}" placeholder="••••••••"
               class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-sm focus:outline-none focus:border-[#C8102E]" />
           </div>
+
+          <label class="flex items-center justify-between p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
+            <div>
+              <div class="text-xs font-bold text-white">Ricorda accesso</div>
+              <div class="text-[11px] text-gray-400">Accedi automaticamente alle prossime aperture su questo dispositivo</div>
+            </div>
+            <input id="login-remember-checkbox" type="checkbox" ${savedCreds ? 'checked' : ''} class="w-4 h-4 accent-[#C8102E]" />
+          </label>
+
           <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-sm transition">
             Accedi
           </button>
@@ -633,12 +684,18 @@
       }
       const email = String(document.getElementById('login-email-input')?.value || '').trim();
       const pass = String(document.getElementById('login-password-input')?.value || '');
+      const remember = !!document.getElementById('login-remember-checkbox')?.checked;
       if (!email || !pass) return;
 
       try {
         await signInWithEmailAndPassword(auth, email, pass);
+        if (remember) {
+          setSavedAuthPref(email, pass);
+        } else {
+          clearSavedAuthPref();
+        }
         closeModal();
-        showToast("Accesso effettuato!", "success");
+        showToast(remember ? "Accesso effettuato e salvato sul dispositivo!" : "Accesso effettuato!", "success");
       } catch (err) {
         console.error("Errore login:", err);
         showToast("Email o password non validi.", "error");
@@ -648,6 +705,7 @@
     window.logoutUser = async function() {
       if (!auth) return;
       try {
+        clearSavedAuthPref();
         await signOut(auth);
         await signInAnonymously(auth);
         closeModal();
@@ -2244,7 +2302,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(batch.picks);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.7 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v1.8 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2661,7 +2719,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
     window.openSettingsModal = function() {
       const adminMode = isAdmin();
-      const playersRows = state.settings.players.map((p, idx) => `
+      const playersRows = state.settings.players.map((p) => `
         <div class="flex items-center gap-2">
           <span class="w-8 text-xs font-bold text-gray-500">${escapeHtml(p.id)}</span>
           <input type="text" data-player-id="${p.id}" value="${escapeHtml(p.name)}" ${adminMode ? '' : 'disabled'}
@@ -2676,7 +2734,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.7 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-[11px] text-gray-400">Release v1.8 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
