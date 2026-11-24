@@ -3478,7 +3478,23 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </div>
         `).join('');
       };
+function renderPuntateStoricoTab() {
+  const history = state.history || [];
 
+  if (history.length === 0) {
+    return `
+      <div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10">
+        <div class="text-4xl mb-3">🗂️</div>
+        <h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2>
+        <p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p>
+      </div>
+    `;
+  }
+  function renderPuntateStoricoTab() {
+  const history = state.history || [];
+  if (history.length === 0) {
+    return `<div class="text-center py-12 px-5 rounded-3xl bg-[#1E1E1E] border border-white/10"><div class="text-4xl mb-3">🗂️</div><h2 class="text-lg font-black text-white">Storico Puntate vuoto</h2><p class="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">Quando chiudi una schedina (manualmente o con l'AI) nella tab SCHEDINE, comparirà qui con il dettaglio delle schedine.</p></div>`;
+  }
       return `
         <div class="space-y-3">
           <div class="flex items-center justify-between">
@@ -3495,7 +3511,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             const hasB = !!h.schedinaB;
             const listA = Array.isArray(h.picksA) ? h.picksA : (hasA ? (h.picks || []) : []);
             const listB = Array.isArray(h.picksB) ? h.picksB : (hasB ? (h.picks || []) : []);
-
+const recomputed = computeTickets(h.picks || []);
+  const finalListA = listA.length > 0 ? listA : recomputed.ticketA.picks;
+  const finalListB = listB.length > 0 ? listB : recomputed.ticketB.picks;
+  const showA = !h.ticketType || h.ticketType === 'A';
+  const showB = !h.ticketType || h.ticketType === 'B';
+  const infoA = h.schedinaA || recomputed.ticketA;
+  const infoB = h.schedinaB || recomputed.ticketB;
+  const wonA = typeof infoA.won === 'boolean' ? infoA.won : infoA.status === 'won';
+  const winValA = Number(infoA.actualWin ?? (wonA ? infoA.potentialWin : 0) ?? 0);
+  const wonB = typeof infoB.won === 'boolean' ? infoB.won : infoB.status === 'won';
+  const winValB = Number(infoB.actualWin ?? (wonB ? infoB.maxWin : 0) ?? 0);
             return `
               <div class="rounded-3xl bg-[#1E1E1E] border border-white/10 overflow-hidden shadow-lg">
                 <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
