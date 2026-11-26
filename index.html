@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v1.9 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.0 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -154,7 +154,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 flex-wrap">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v1.9</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.0</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -475,6 +475,7 @@
           checkedB: {},
           receipts: [],
           receiptCheckReport: null,
+          cashChargedAmount: null,
           closedA: null,
           closedB: null
         };
@@ -495,6 +496,7 @@
         checkedB: {},
         receipts: [],
         receiptCheckReport: null,
+        cashChargedAmount: null,
         closedA: null,
         closedB: null
       };
@@ -746,6 +748,7 @@
             checkedB: data.activePlay.checkedB || {},
             receipts: data.activePlay.receipts || [],
             receiptCheckReport: data.activePlay.receiptCheckReport || null,
+            cashChargedAmount: typeof data.activePlay.cashChargedAmount === 'number' ? data.activePlay.cashChargedAmount : null,
             closedA: data.activePlay.closedA || null,
             closedB: data.activePlay.closedB || null
           });
@@ -893,7 +896,7 @@
         await setDoc(weekRef, payload);
       } catch (err) {
         console.error("Errore salvataggio settimana:", err);
-        showToast("Errore sincronizzazione settimana (verifica i permessi).", "error");
+        showToast("Errore sincronizzazione settimana su cloud.", "error");
       } finally {
         isSavingWeek = false;
         if (pendingWeekSave) {
@@ -904,21 +907,23 @@
     }
 
     async function addTransactionToCloud(tx) {
-      if (!isAdmin()) {
-        showToast("Solo l'Admin (Massimo Dassie) può modificare la cassa.", "warning");
-        return;
+      if (!isSignedInPlayer()) {
+        showToast("Sola lettura: accedi per registrare movimenti.", "warning");
+        return false;
       }
       const cleanTx = { ...tx, note: stripDemoText(tx.note || '') };
       if (!db || !state.user) {
         state.transactions.unshift({ id: 'tx_' + Date.now() + Math.random().toString(36).slice(2, 5), ...cleanTx });
         render();
-        return;
+        return true;
       }
       try {
         await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'transactions'), cleanTx);
+        return true;
       } catch (err) {
         console.error("Errore salvataggio transazione:", err);
         showToast("Errore salvataggio movimento in cassa.", "error");
+        return false;
       }
     }
 
@@ -1087,9 +1092,9 @@
     async function callGeminiWithFallback(payload) {
       const apiKey = (runtimeGeminiKey || "").trim();
       if (!apiKey) {
-        throw new Error("Chiave API Gemini mancante. Inseriscila nelle Impostazioni.");
+        throw new Error("Chiave API Gemini mancante.");
       }
-      const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3.5-flash-lite'];
+      const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
       let lastErr = null;
       for (const modelName of models) {
         try {
@@ -1098,9 +1103,8 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-          });
+          }, 2);
         } catch (err) {
-          console.warn(`Tentativo Gemini fallito su ${modelName}:`, err);
           lastErr = err;
         }
       }
@@ -1426,8 +1430,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     }
 
-    async function fetchWithBackoff(url, options, maxRetries = 3) {
-      let delay = 1000;
+    async function fetchWithBackoff(url, options, maxRetries = 2) {
+      let delay = 800;
       for (let i = 0; i < maxRetries; i++) {
         try {
           const res = await fetch(url, options);
@@ -1463,7 +1467,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       });
     }
 
-    function compressReceiptImage(file, maxWidth = 1200, quality = 0.78) {
+    function compressReceiptImage(file, maxWidth = 1000, quality = 0.72) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (ev) => {
@@ -1866,7 +1870,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return true;
     }
 
-    // Modifica quota al volo dal pannello GIOCA (solo Admin) con ricalcolo automatico
     window.updateDraftPickQuota = async function(pickId, rawVal) {
       if (!isAdmin()) {
         showToast("Solo l'Admin può modificare le quote dal pannello gioco.", "warning");
@@ -1902,6 +1905,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast("Giocata rimossa.", "info");
     };
 
+    // Segna come giocata: NON scala subito la cassa (verrà scalata al caricamento dei cedolini con conferma)
     window.markTicketAsPlayed = async function() {
       if (!isAdmin()) {
         showToast("Solo l'Admin (Massimo Dassie) può segnare una puntata come giocata.", "warning");
@@ -1924,6 +1928,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         checkedB: {},
         receipts: [],
         receiptCheckReport: null,
+        cashChargedAmount: null,
         closedA: null,
         closedB: null
       };
@@ -1946,7 +1951,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       await saveCurrentWeekToCloud(true);
       render();
-      showToast(`${newBatch.label} salvata in SCHEDINE! Tab GIOCA pulita per nuova giornata.`, "success");
+      showToast(`${newBatch.label} spostata in SCHEDINE. Il costo verrà scalato caricando i cedolini.`, "success");
     };
 
     window.setPickStatus = async function(pickId, newStatus) {
@@ -2106,16 +2111,109 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     };
 
     window.triggerReceiptUpload = function() {
-      if (!isAdmin()) {
-        showToast("Solo l'Admin può caricare cedolini.", "warning");
+      if (!isSignedInPlayer()) {
+        showToast("Accedi per caricare i cedolini.", "warning");
         return;
       }
       const inp = document.getElementById('receipt-file-input');
       if (inp) inp.click();
     };
 
+    // Modale di conferma e modifica importo da scalare dalla cassa al caricamento cedolini
+    window.openChargeBatchCashModal = function(batchId, suggestedAmount = 10.00) {
+      const batch = (state.currentWeek.playedBatches || []).find(b => b.id === batchId) || getActiveSchedineBatch();
+      if (!batch || batch.isDraft) return;
+
+      const defaultAmt = typeof batch.cashChargedAmount === 'number' && batch.cashChargedAmount > 0
+        ? batch.cashChargedAmount
+        : suggestedAmount;
+      const alreadyCharged = typeof batch.cashChargedAmount === 'number' && batch.cashChargedAmount > 0;
+      const cleanLabel = stripDemoText(batch.label);
+
+      openModal(`
+        <div class="p-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base text-white">${alreadyCharged ? 'Modifica Scarico Costo Cassa' : 'Scarica Costo Cedolini in Cassa'}</h3>
+            <p class="text-xs text-gray-400">${escapeHtml(cleanLabel)}</p>
+          </div>
+          <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
+        </div>
+        <form onsubmit="submitChargeBatchCash(event, '${batch.id}')" class="p-4 space-y-4">
+          <div class="p-3 rounded-2xl bg-[#121212] border border-[#C8102E]/35 text-xs text-gray-300 space-y-1">
+            <div>Cedolini caricati per questa puntata: <strong>${(batch.receipts || []).length}</strong></div>
+            ${alreadyCharged ? `<div class="text-[#4ADE80] font-semibold">Già scalati in precedenza: ${formatEuro(batch.cashChargedAmount)}</div>` : `<div class="text-amber-300 font-semibold">Costo non ancora scalato dalla cassa.</div>`}
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo totale da scalare dalla Cassa (€)</label>
+            <input id="batch-cash-cost-input" type="number" step="0.50" min="0.50" value="${Number(defaultAmt).toFixed(2)}" required
+              class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#FF6B7D] font-black text-xl focus:outline-none focus:border-[#C8102E]" />
+            <p class="text-[11px] text-gray-500 mt-1">Standard: 10,00 € (5,00 € Schedina A + 5,00 € Schedina B), ma puoi modificarlo liberamente.</p>
+          </div>
+
+          <div class="flex gap-2">
+            ${[5, 10, 15, 20].map(v => `
+              <button type="button" onclick="document.getElementById('batch-cash-cost-input').value='${v}.00'"
+                class="flex-1 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300">${v} €</button>
+            `).join('')}
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5">
+            <button type="button" onclick="closeModal()" class="py-3 rounded-xl bg-white/5 text-gray-300 font-bold text-xs">
+              Non scalare ora
+            </button>
+            <button type="submit"
+              class="py-3 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] text-white font-extrabold text-xs transition active:scale-[0.98]">
+              Conferma e Scala
+            </button>
+          </div>
+        </form>
+      `);
+    };
+
+    window.submitChargeBatchCash = async function(e, batchId) {
+      e.preventDefault();
+      const batch = (state.currentWeek.playedBatches || []).find(b => b.id === batchId);
+      if (!batch) return;
+
+      const rawVal = parseFloat(String(document.getElementById('batch-cash-cost-input')?.value || '0').replace(',', '.'));
+      if (isNaN(rawVal) || rawVal <= 0) {
+        showToast("Inserisci un importo valido maggiore di 0.", "error");
+        return;
+      }
+
+      const newCost = Number(rawVal.toFixed(2));
+      const prevCost = typeof batch.cashChargedAmount === 'number' ? Number(batch.cashChargedAmount.toFixed(2)) : 0;
+      const diffToCharge = Number((newCost - prevCost).toFixed(2));
+      const cleanLabel = stripDemoText(batch.label);
+      const dateStr = new Date().toLocaleDateString('it-IT');
+
+      if (Math.abs(diffToCharge) >= 0.01) {
+        const ok = await addTransactionToCloud({
+          type: 'bet',
+          amount: -diffToCharge,
+          note: prevCost > 0
+            ? `Rettifica costo cedolini (${cleanLabel}: ${formatEuro(prevCost)} → ${formatEuro(newCost)})`
+            : `Costo schedine cedolini (${cleanLabel})`,
+          date: dateStr,
+          createdAt: Date.now()
+        });
+        if (!ok) return;
+      }
+
+      batch.cashChargedAmount = newCost;
+      await saveCurrentWeekToCloud(true);
+      closeModal();
+      render();
+      showToast(`Scalati ${formatEuro(newCost)} dalla Cassa per ${cleanLabel}!`, "success");
+    };
+
+    // Upload cedolino: mai bloccato su "Caricamento...", salva subito e propone scarico costo in cassa
     window.handleReceiptUpload = async function(e) {
-      if (!isAdmin()) return;
+      if (!isSignedInPlayer()) {
+        showToast("Accedi per caricare i cedolini.", "warning");
+        return;
+      }
       const files = Array.from(e.target.files || []);
       e.target.value = '';
       if (files.length === 0) return;
@@ -2133,71 +2231,78 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       state.uploadingReceipts = true;
       render();
 
-      const mergedReport = {
-        checkedAt: Date.now(),
-        totalExtracted: 0,
-        matched: [],
-        mismatches: [],
-        unmatched: []
-      };
+      let uploadedCount = 0;
+      let lastBase64 = '';
 
-      for (const file of files) {
-        try {
-          const compressedDataUrl = await compressReceiptImage(file);
-          const base64Only = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
-          const receiptId = 'rc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-          const path = `artifacts/${appId}/receipts/${receiptId}.jpg`;
+      try {
+        for (const file of files) {
+          try {
+            const compressedDataUrl = await compressReceiptImage(file, 900, 0.68);
+            const base64Only = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
+            lastBase64 = base64Only;
+            const receiptId = 'rc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            const path = `artifacts/${appId}/receipts/${receiptId}.jpg`;
 
-          let downloadUrl = '';
-          let savedStoragePath = '';
+            let downloadUrl = '';
+            let savedStoragePath = '';
 
-          if (storage && state.user) {
-            try {
-              const sRef = storageRef(storage, path);
-              await uploadString(sRef, compressedDataUrl, 'data_url');
-              downloadUrl = await getDownloadURL(sRef);
-              savedStoragePath = path;
-            } catch (stErr) {
-              console.warn("Upload su Firebase Storage fallito, uso fallback locale:", stErr);
+            if (storage && state.user) {
+              try {
+                const storagePromise = (async () => {
+                  const sRef = storageRef(storage, path);
+                  await uploadString(sRef, compressedDataUrl, 'data_url');
+                  return await getDownloadURL(sRef);
+                })();
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout Storage")), 7000));
+                downloadUrl = await Promise.race([storagePromise, timeoutPromise]);
+                savedStoragePath = path;
+              } catch (stErr) {
+                console.warn("Storage non disponibile/timeout, salvo immagine compressa:", stErr);
+                downloadUrl = '';
+              }
             }
-          }
 
-          batch.receipts.push({
-            id: receiptId,
-            name: file.name || 'Cedolino Sisal',
-            url: downloadUrl || '',
-            dataUrl: downloadUrl ? '' : compressedDataUrl,
-            storagePath: savedStoragePath,
-            addedAt: Date.now()
-          });
-
-          const report = await verifyReceiptAgainstPicks(base64Only, batch.picks);
-          if (report) {
-            mergedReport.totalExtracted += report.totalExtracted;
-            mergedReport.matched.push(...report.matched);
-            mergedReport.mismatches.push(...report.mismatches);
-            mergedReport.unmatched.push(...report.unmatched);
+            batch.receipts.push({
+              id: receiptId,
+              name: file.name || 'Cedolino Sisal',
+              url: downloadUrl || '',
+              dataUrl: downloadUrl ? '' : compressedDataUrl,
+              storagePath: savedStoragePath,
+              addedAt: Date.now()
+            });
+            uploadedCount++;
+          } catch (fileErr) {
+            console.error("Errore elaborazione file cedolino:", fileErr);
           }
-        } catch (err) {
-          console.error("Errore caricamento cedolino:", err);
-          showToast("Impossibile allegare un cedolino.", "error");
         }
+
+        await saveCurrentWeekToCloud(true);
+
+        // Verifica quote AI in background non bloccante (max 8s)
+        if (lastBase64 && runtimeGeminiKey) {
+          try {
+            const aiPromise = verifyReceiptAgainstPicks(lastBase64, batch.picks);
+            const aiTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
+            const report = await Promise.race([aiPromise, aiTimeout]);
+            if (report && report.totalExtracted > 0) {
+              batch.receiptCheckReport = report;
+              await saveCurrentWeekToCloud(true);
+            }
+          } catch (_) {}
+        }
+      } finally {
+        state.uploadingReceipts = false;
+        render();
       }
 
-      if (mergedReport.totalExtracted > 0) {
-        batch.receiptCheckReport = mergedReport;
-      }
-
-      state.uploadingReceipts = false;
-      await saveCurrentWeekToCloud(true);
-      render();
-
-      if (mergedReport.mismatches.length > 0) {
-        showToast(`Cedolino caricato! Trovate ${mergedReport.mismatches.length} quote diverse da allineare.`, "warning");
-      } else if (mergedReport.totalExtracted > 0) {
-        showToast("Cedolino caricato e tutte le quote risultano allineate!", "success");
+      if (uploadedCount > 0) {
+        showToast(`${uploadedCount} cedolin${uploadedCount === 1 ? 'o caricato' : 'i caricati'}!`, "success");
+        const alreadyCharged = typeof batch.cashChargedAmount === 'number' && batch.cashChargedAmount > 0;
+        if (!alreadyCharged) {
+          openChargeBatchCashModal(batch.id, 10.00);
+        }
       } else {
-        showToast("Cedolino allegato alla puntata!", "success");
+        showToast("Impossibile caricare il cedolino.", "error");
       }
     };
 
@@ -2246,11 +2351,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
     };
 
     window.deleteReceipt = async function(receiptId) {
-      if (!isAdmin()) return;
+      if (!isSignedInPlayer()) return;
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
       const target = (batch.receipts || []).find(r => r.id === receiptId);
-      if (target?.storagePath && storage) {
+      if (target?.storagePath && storage && isAdmin()) {
         try {
           await deleteObject(storageRef(storage, target.storagePath));
         } catch (err) {
@@ -2272,22 +2377,22 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-sm text-white truncate">${escapeHtml(rc.name)}</h3>
-            <p class="text-[11px] text-gray-400">${rc.url ? 'Salvato su Firebase Storage' : 'Cedolino allegato'}</p>
+            <p class="text-[11px] text-gray-400">${rc.url ? 'Salvato su Firebase Storage' : 'Cedolino salvato'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
         <div class="p-4 overflow-y-auto flex flex-col items-center gap-3">
           <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="max-h-[60vh] w-auto rounded-2xl border border-white/10 object-contain" />
-          ${isAdmin() ? `
-            <div class="grid grid-cols-2 gap-2 w-full">
+          <div class="grid grid-cols-2 gap-2 w-full">
+            ${isAdmin() ? `
               <button onclick="closeModal(); recheckExistingReceipt('${rc.id}');" class="py-2.5 rounded-xl bg-[#22C55E]/20 text-[#4ADE80] font-bold text-xs">
                 🔍 Verifica quote AI
               </button>
-              <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
-                Elimina cedolino
-              </button>
-            </div>
-          ` : ''}
+            ` : `<div></div>`}
+            <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
+              Elimina cedolino
+            </button>
+          </div>
         </div>
       `);
     };
@@ -2326,7 +2431,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(batch.picks);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v1.9 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.0 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2487,14 +2592,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         } : null,
         totalStake: 5.00,
         totalWin: winAmt
-      });
-
-      await addTransactionToCloud({
-        type: 'bet',
-        amount: -5.00,
-        note: `Costo Schedina ${ticketType} (${cleanBatchLabel})`,
-        date: dateStr,
-        createdAt: now
       });
 
       if (winAmt > 0) {
@@ -2758,7 +2855,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v1.9 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-[11px] text-gray-400">Release v2.0 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3295,6 +3392,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
     function renderSchedineTab() {
       const adminMode = isAdmin();
+      const canPlay = isSignedInPlayer();
       const batches = Array.isArray(state.currentWeek.playedBatches) ? state.currentWeek.playedBatches : [];
       const draftPicks = Array.isArray(state.currentWeek.picks) ? state.currentWeek.picks : [];
 
@@ -3314,6 +3412,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeTickets(currentBatch.picks);
       const receipts = Array.isArray(currentBatch.receipts) ? currentBatch.receipts : [];
       const report = currentBatch.receiptCheckReport;
+      const chargedAmount = typeof currentBatch.cashChargedAmount === 'number' && currentBatch.cashChargedAmount > 0
+        ? currentBatch.cashChargedAmount
+        : 0;
       const mismatchMap = {};
       if (report && Array.isArray(report.mismatches)) {
         report.mismatches.forEach(m => { mismatchMap[m.pickId] = m; });
@@ -3331,7 +3432,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               const cleanBLabel = stripDemoText(b.label);
               const statusTxt = (b.closedA || b.closedB)
                 ? `A:${b.closedA ? 'Chiusa' : 'Aperta'} · B:${b.closedB ? 'Chiusa' : 'Aperta'}`
-                : 'Giocata · Da verificare';
+                : (typeof b.cashChargedAmount === 'number' && b.cashChargedAmount > 0)
+                  ? `Cassa: -${formatEuro(b.cashChargedAmount)}`
+                  : 'Giocata · Cedolino da caricare';
               return `
                 <button type="button" onclick="selectBatchInSchedine('${b.id}')"
                   class="shrink-0 sm:shrink text-left p-2.5 rounded-2xl border transition ${
@@ -3531,7 +3634,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             : `<span class="px-2.5 py-1 rounded-lg border border-[#C8102E]/60 bg-[#C8102E]/15 text-[#FF8A98] text-xs font-black">Sistema 1 errore</span>`;
 
       const receiptsHtml = receipts.length === 0
-        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata.</div>`
+        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai scalare il costo in cassa.</div>`
         : `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
             ${receipts.map(rc => {
               const imgSrc = rc.url || rc.dataUrl;
@@ -3542,16 +3645,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="w-full h-24 object-cover" />
                     <div class="px-2 pt-1.5 text-[10px] text-gray-300 truncate">${escapeHtml(rc.name)}</div>
                   </button>
-                  ${adminMode ? `
-                    <div class="p-1.5 flex items-center justify-between gap-1">
+                  <div class="p-1.5 flex items-center justify-between gap-1">
+                    ${adminMode ? `
                       <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis ? 'disabled' : ''}
                         class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-[10px] transition">
                         ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
                       </button>
+                    ` : `<span class="text-[10px] text-gray-500 px-1">Allegato</span>`}
+                    ${canPlay ? `
                       <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
                         class="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-[10px] font-bold">✕</button>
-                    </div>
-                  ` : ''}
+                    ` : ''}
+                  </div>
                 </div>
               `;
             }).join('')}
@@ -3584,26 +3689,38 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C8102E] text-white">
                 🔴⚫ ${escapeHtml(stripDemoText(currentBatch.label))}
               </span>
-              <span class="text-[10px] text-gray-400">
-                A: ${closedA ? 'Chiusa' : 'Aperta'} · B: ${closedB ? 'Chiusa' : 'Aperta'}
+              <span class="text-[10px] ${chargedAmount > 0 ? 'text-[#4ADE80] font-bold' : 'text-amber-300 font-semibold'}">
+                ${chargedAmount > 0 ? `Scalati: -${formatEuro(chargedAmount)}` : 'Costo non scalato'}
               </span>
             </div>
 
             <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <div>
-                  <div class="text-xs font-bold text-white">Cedolini Sisal & Check Quote</div>
-                  <div class="text-[10px] text-gray-400">Ricevute allegate e verifica quote del cedolino.</div>
+                  <div class="text-xs font-bold text-white">Cedolini Sisal & Scarico Cassa</div>
+                  <div class="text-[10px] text-gray-400">Carica i cedolini per confermare e scalare il costo in cassa.</div>
                 </div>
-                ${adminMode ? `
+                ${canPlay ? `
                   <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
                   <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
-                    class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition">
+                    class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition">
                     ${state.uploadingReceipts ? 'Caricamento...' : '+ Carica Cedolino'}
                   </button>
                 ` : ''}
               </div>
               ${receiptsHtml}
+
+              ${canPlay ? `
+                <div class="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                  <span class="text-[11px] text-gray-400">
+                    ${chargedAmount > 0 ? `Costo scalato: <strong class="text-white">${formatEuro(chargedAmount)}</strong>` : 'Costo da scalare alla conferma cedolino'}
+                  </span>
+                  <button type="button" onclick="openChargeBatchCashModal('${currentBatch.id}', 10.00)"
+                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-[#FF8A98] font-bold text-[10px] shrink-0 transition">
+                    ${chargedAmount > 0 ? '✏️ Modifica Scarico' : '💳 Scarica Costo Cassa'}
+                  </button>
+                </div>
+              ` : ''}
             </div>
 
             ${checkReportHtml}
