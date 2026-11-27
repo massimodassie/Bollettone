@@ -476,6 +476,8 @@
           receipts: [],
           receiptCheckReport: null,
           cashChargedAmount: null,
+          frozenTicketA: null,
+          frozenTicketB: null,
           closedA: null,
           closedB: null
         };
@@ -497,9 +499,50 @@
         receipts: [],
         receiptCheckReport: null,
         cashChargedAmount: null,
+        frozenTicketA: null,
+        frozenTicketB: null,
         closedA: null,
         closedB: null
       };
+    }
+
+    // Congela la composizione A/B di un batch già giocato/con cedolino così non sposta partite tra A e B
+    function ensureBatchCompositionFrozen(batch, forceFreeze = false) {
+      if (!batch || batch.isDraft) return;
+      const hasReceipts = Array.isArray(batch.receipts) && batch.receipts.length > 0;
+      if (!forceFreeze && !hasReceipts) return;
+      if (Array.isArray(batch.frozenTicketA) && Array.isArray(batch.frozenTicketB) && batch.frozenTicketA.length > 0) {
+        return;
+      }
+      const initialCalc = computeTickets(batch.picks || []);
+      batch.frozenTicketA = initialCalc.ticketA.picks.map(p => ({
+        id: p.id,
+        playerId: p.playerId,
+        playerName: p.playerName,
+        isJolly: !!p.isJolly
+      }));
+      batch.frozenTicketB = initialCalc.ticketB.picks.map(p => ({
+        id: p.id,
+        playerId: p.playerId,
+        playerName: p.playerName,
+        isJolly: !!p.isJolly
+      }));
+    }
+
+    // Sincronizza i campi aggiornati (come quota e status) sulle liste congelate senza spostare partite tra A e B
+    function syncFrozenListWithPicks(frozenMetaList = [], currentPicks = []) {
+      const pickMap = new Map((Array.isArray(currentPicks) ? currentPicks : []).map(pk => [pk.id, pk]));
+      return frozenMetaList.map(meta => {
+        const live = pickMap.get(meta.id);
+        if (!live) {
+          return { ...meta };
+        }
+        return {
+          ...live,
+          playerName: meta.playerName || getPlayerName(live.playerId),
+          isJolly: !!meta.isJolly
+        };
+      });
     }
 
     let db = null;
@@ -749,6 +792,8 @@
             receipts: data.activePlay.receipts || [],
             receiptCheckReport: data.activePlay.receiptCheckReport || null,
             cashChargedAmount: typeof data.activePlay.cashChargedAmount === 'number' ? data.activePlay.cashChargedAmount : null,
+            frozenTicketA: data.activePlay.frozenTicketA || null,
+            frozenTicketB: data.activePlay.frozenTicketB || null,
             closedA: data.activePlay.closedA || null,
             closedB: data.activePlay.closedB || null
           });
@@ -1094,7 +1139,7 @@
       if (!apiKey) {
         throw new Error("Chiave API Gemini mancante.");
       }
-      const models = ['gemini-3.5-flash-lite' , 'gemini-3.5-flash'];
+      const models = ['gemini-3.5-flash-lite', 'gemini-2.5-flash'];
       let lastErr = null;
       for (const modelName of models) {
         try {
@@ -1489,41 +1534,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       });
     }
 
-    function computeTickets(customPicks = null) {
-      const players = state.settings.players;
-      const picks = Array.isArray(customPicks) ? customPicks : (getActiveSchedineBatch().picks || []);
-      const bonusActive = state.settings.bonusMultipla;
-
-      const byPlayer = {};
-      players.forEach(p => { byPlayer[p.id] = []; });
-      picks.forEach(pk => {
-        if (!byPlayer[pk.playerId]) byPlayer[pk.playerId] = [];
-        byPlayer[pk.playerId].push(pk);
-      });
-
-      const ticketA = [];
-      const ticketBBase = [];
-      let playersComplete = 0;
-
-      players.forEach(p => {
-        const list = (byPlayer[p.id] || []).slice().sort((a, b) => Number(a.quota) - Number(b.quota));
-        if (list.length >= 2) playersComplete++;
-        if (list.length >= 1) {
-          ticketA.push({ ...list[0], playerName: p.name });
-        }
-        if (list.length >= 2) {
-          ticketBBase.push({ ...list[1], playerName: p.name, isJolly: false });
-        }
-      });
-
-      let jollyFromA = null;
-      const ticketB = [...ticketBBase];
-      if (ticketA.length > 0) {
-        const sortedA = [...ticketA].sort((a, b) => Number(a.quota) - Number(b.quota));
-        jollyFromA = { ...sortedA[0], isJolly: true };
-        ticketB.push(jollyFromA);
-      }
-
+    function buildTicketMetrics(ticketA, ticketB, bonusActive, playersCount, playersComplete) {
       const stakeA = 5.00;
       const rawProdA = ticketA.length > 0 ? ticketA.reduce((acc, x) => acc * Number(x.quota), 1) : 0;
       const applyBonusA = bonusActive && ticketA.length >= 5;
@@ -1612,8 +1623,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
       }
 
+      const jollyFromA = ticketB.find(x => x.isJolly) || null;
+
       return {
-        playersCount: players.length,
+        playersCount,
         playersComplete,
         ticketA: {
           picks: ticketA,
@@ -1645,6 +1658,70 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           hitsLabel: hitsLabelB
         }
       };
+    }
+
+    function computeTickets(customPicks = null) {
+      const players = state.settings.players;
+      const picks = Array.isArray(customPicks) ? customPicks : (getActiveSchedineBatch().picks || []);
+      const bonusActive = state.settings.bonusMultipla;
+
+      const byPlayer = {};
+      players.forEach(p => { byPlayer[p.id] = []; });
+      picks.forEach(pk => {
+        if (!byPlayer[pk.playerId]) byPlayer[pk.playerId] = [];
+        byPlayer[pk.playerId].push(pk);
+      });
+
+      const ticketA = [];
+      const ticketBBase = [];
+      let playersComplete = 0;
+
+      players.forEach(p => {
+        const list = (byPlayer[p.id] || []).slice().sort((a, b) => Number(a.quota) - Number(b.quota));
+        if (list.length >= 2) playersComplete++;
+        if (list.length >= 1) {
+          ticketA.push({ ...list[0], playerName: p.name });
+        }
+        if (list.length >= 2) {
+          ticketBBase.push({ ...list[1], playerName: p.name, isJolly: false });
+        }
+      });
+
+      let jollyFromA = null;
+      const ticketB = [...ticketBBase];
+      if (ticketA.length > 0) {
+        const sortedA = [...ticketA].sort((a, b) => Number(a.quota) - Number(b.quota));
+        jollyFromA = { ...sortedA[0], isJolly: true };
+        ticketB.push(jollyFromA);
+      }
+
+      return buildTicketMetrics(ticketA, ticketB, bonusActive, players.length, playersComplete);
+    }
+
+    // Calcola i totali per un batch mantenendo congelata l'appartenenza e l'ordine tra Schedina A e Schedina B
+    function computeBatchTickets(batch) {
+      if (!batch || batch.isDraft) {
+        return computeTickets(batch?.picks || []);
+      }
+      const hasFrozen = Array.isArray(batch.frozenTicketA) && Array.isArray(batch.frozenTicketB) && batch.frozenTicketA.length > 0;
+      if (!hasFrozen) {
+        return computeTickets(batch.picks || []);
+      }
+
+      const ticketA = syncFrozenListWithPicks(batch.frozenTicketA, batch.picks || []);
+      const ticketB = syncFrozenListWithPicks(batch.frozenTicketB, batch.picks || []);
+
+      const byPlayer = {};
+      (batch.picks || []).forEach(pk => {
+        if (!byPlayer[pk.playerId]) byPlayer[pk.playerId] = [];
+        byPlayer[pk.playerId].push(pk);
+      });
+      let playersComplete = 0;
+      state.settings.players.forEach(p => {
+        if ((byPlayer[p.id] || []).length >= 2) playersComplete++;
+      });
+
+      return buildTicketMetrics(ticketA, ticketB, state.settings.bonusMultipla, state.settings.players.length, playersComplete);
     }
 
     window.switchTab = function(tab) {
@@ -1905,7 +1982,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast("Giocata rimossa.", "info");
     };
 
-    // Segna come giocata: NON scala subito la cassa (verrà scalata al caricamento dei cedolini con conferma)
+    // Segna come giocata e congela la composizione A/B per la puntata
     window.markTicketAsPlayed = async function() {
       if (!isAdmin()) {
         showToast("Solo l'Admin (Massimo Dassie) può segnare una puntata come giocata.", "warning");
@@ -1919,6 +1996,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const now = Date.now();
       const batchIndex = (state.currentWeek.playedBatches || []).length + 1;
+      const initialCalc = computeTickets(picks);
+
       const newBatch = {
         id: 'batch_' + now + '_' + Math.random().toString(36).slice(2, 5),
         label: `Puntata #${batchIndex} · ${formatShortDateTime(now)}`,
@@ -1929,6 +2008,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         receipts: [],
         receiptCheckReport: null,
         cashChargedAmount: null,
+        frozenTicketA: initialCalc.ticketA.picks.map(p => ({
+          id: p.id,
+          playerId: p.playerId,
+          playerName: p.playerName,
+          isJolly: !!p.isJolly
+        })),
+        frozenTicketB: initialCalc.ticketB.picks.map(p => ({
+          id: p.id,
+          playerId: p.playerId,
+          playerName: p.playerName,
+          isJolly: !!p.isJolly
+        })),
         closedA: null,
         closedB: null
       };
@@ -1971,7 +2062,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
 
       if (pk.status !== 'pending' && prevStatus !== pk.status) {
-        const calc = computeTickets(batch.picks);
+        const calc = computeBatchTickets(batch);
         const inA = calc.ticketA.picks.some(x => x.id === pickId);
         const inB = calc.ticketB.picks.some(x => x.id === pickId);
 
@@ -2001,7 +2092,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         showToast("Prima segna la puntata come giocata.", "warning");
         return;
       }
-      const calc = computeTickets(batch.picks);
+      const calc = computeBatchTickets(batch);
       const targetPicks = ticketType === 'A' ? calc.ticketA.picks : calc.ticketB.picks;
       analyzeResultsScreenshot(file, batch.id, ticketType, targetPicks);
     };
@@ -2044,7 +2135,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
       showToast(`Applicati ${appliedCount} esiti AI su Schedina ${ticketType}!`, "success");
 
-      const calc = computeTickets(batch.picks);
+      const calc = computeBatchTickets(batch);
       if (ticketType === 'A' && !batch.closedA && calc.ticketA.allResolved) {
         openSingleTicketCloseModal(batch.id, 'A', true);
       } else if (ticketType === 'B' && !batch.closedB && calc.ticketB.allResolved) {
@@ -2052,6 +2143,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     };
 
+    // Modifica quota definitiva senza spostare partite tra Schedina A e Schedina B
     window.updatePickFinalQuota = async function(pickId, rawVal) {
       if (!isAdmin()) {
         showToast("Solo l'Admin può modificare le quote definitive.", "warning");
@@ -2060,6 +2152,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
+      ensureBatchCompositionFrozen(batch, true);
+
       const pk = (batch.picks || []).find(p => p.id === pickId);
       if (!pk) return;
 
@@ -2078,13 +2172,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       await saveCurrentWeekToCloud(true);
       render();
-      showToast(`Quota aggiornata a ${pk.quota.toFixed(2)}`, "success");
+      showToast(`Quota aggiornata a ${pk.quota.toFixed(2)} (schedina invariata)`, "success");
     };
 
     window.applyAllReceiptQuotas = async function() {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
+      ensureBatchCompositionFrozen(batch, true);
+
       const mismatches = batch.receiptCheckReport?.mismatches || [];
       if (mismatches.length === 0) return;
 
@@ -2098,7 +2194,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       batch.receiptCheckReport.mismatches = [];
       await saveCurrentWeekToCloud(true);
       render();
-      showToast("Tutte le quote sono state allineate ai cedolini!", "success");
+      showToast("Quote allineate ai cedolini senza spostare le partite!", "success");
     };
 
     window.dismissReceiptReport = async function() {
@@ -2119,7 +2215,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       if (inp) inp.click();
     };
 
-    // Modale di conferma e modifica importo da scalare dalla cassa al caricamento cedolini
     window.openChargeBatchCashModal = function(batchId, suggestedAmount = 10.00) {
       const batch = (state.currentWeek.playedBatches || []).find(b => b.id === batchId) || getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
@@ -2208,7 +2303,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Scalati ${formatEuro(newCost)} dalla Cassa per ${cleanLabel}!`, "success");
     };
 
-    // Upload cedolino: mai bloccato su "Caricamento...", salva subito e propone scarico costo in cassa
     window.handleReceiptUpload = async function(e) {
       if (!isSignedInPlayer()) {
         showToast("Accedi per caricare i cedolini.", "warning");
@@ -2223,6 +2317,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         showToast("Prima segna la puntata come giocata.", "warning");
         return;
       }
+
+      // Congela subito la composizione A/B all'atto del caricamento cedolino
+      ensureBatchCompositionFrozen(batch, true);
 
       if (!Array.isArray(batch.receipts)) {
         batch.receipts = [];
@@ -2278,7 +2375,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         await saveCurrentWeekToCloud(true);
 
-        // Verifica quote AI in background non bloccante (max 8s)
         if (lastBase64 && runtimeGeminiKey) {
           try {
             const aiPromise = verifyReceiptAgainstPicks(lastBase64, batch.picks);
@@ -2313,6 +2409,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
+      ensureBatchCompositionFrozen(batch, true);
+
       const rc = (batch.receipts || []).find(r => r.id === receiptId);
       if (!rc) return;
 
@@ -2428,7 +2526,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
     window.copyWhatsAppSummary = function() {
       const batch = getActiveSchedineBatch();
-      const calc = computeTickets(batch.picks);
+      const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
       lines.push(`⚽ *BOLLETTONE v2.0 — ${cleanLabel}*`);
@@ -2480,7 +2578,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       const batch = (state.currentWeek.playedBatches || []).find(b => b.id === batchId) || getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
-      const calc = computeTickets(batch.picks);
+      const calc = computeBatchTickets(batch);
       const isA = ticketType === 'A';
       const tObj = isA ? calc.ticketA : calc.ticketB;
       const suggested = tObj.status === 'won' ? Number(tObj.actualWin || 0) : 0;
@@ -2549,7 +2647,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const winAmt = isNaN(winVal) ? 0 : Math.max(0, Number(winVal.toFixed(2)));
       const now = Date.now();
       const dateStr = new Date().toLocaleDateString('it-IT');
-      const calc = computeTickets(batch.picks);
+      const calc = computeBatchTickets(batch);
       const isA = ticketType === 'A';
       const tObj = isA ? calc.ticketA : calc.ticketB;
       const cleanBatchLabel = stripDemoText(batch.label);
@@ -3013,7 +3111,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       });
 
       const activeBatch = getActiveSchedineBatch();
-      const calc = computeTickets(activeBatch.picks);
+      const calc = computeBatchTickets(activeBatch);
       const badgeSched = document.getElementById('badge-schedine');
       if (badgeSched) {
         if (calc.ticketA.picks.length >= 5 && calc.ticketB.picks.length >= 6) badgeSched.classList.remove('hidden');
@@ -3409,7 +3507,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const currentBatch = getActiveSchedineBatch();
       const isDraftView = !!currentBatch.isDraft;
-      const calc = computeTickets(currentBatch.picks);
+      const calc = computeBatchTickets(currentBatch);
       const receipts = Array.isArray(currentBatch.receipts) ? currentBatch.receipts : [];
       const report = currentBatch.receiptCheckReport;
       const chargedAmount = typeof currentBatch.cashChargedAmount === 'number' && currentBatch.cashChargedAmount > 0
