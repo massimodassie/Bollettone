@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.5 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.6 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
   </script>
   <style>
     html {
-      font-size: 19px;
+      font-size: 21px;
     }
     body {
       background-color: #121212;
@@ -68,7 +68,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .safe-bottom {
-      padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
     }
 
     @keyframes pulseSoft {
@@ -192,7 +192,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-black tracking-tight text-xl leading-none text-white">BOLLETTONE</h1>
-            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.5</span>
+            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.6</span>
             <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -410,7 +410,7 @@
       loadingResultAI: null,
       uploadingReceipts: false,
       checkingReceiptId: null,
-      checkingAllReceipts: false,
+      checkingTicketKey: null,
       aiPreviewMatches: null,
       aiResultPreview: null,
       selectedPlayerId: getSavedPlayerPref() || 'p1',
@@ -513,7 +513,8 @@
           checkedA: {},
           checkedB: {},
           receipts: [],
-          receiptCheckReport: null,
+          receiptCheckReportA: null,
+          receiptCheckReportB: null,
           cashChargedAmount: null,
           frozenTicketA: null,
           frozenTicketB: null,
@@ -536,7 +537,8 @@
         checkedA: {},
         checkedB: {},
         receipts: [],
-        receiptCheckReport: null,
+        receiptCheckReportA: null,
+        receiptCheckReportB: null,
         cashChargedAmount: null,
         frozenTicketA: null,
         frozenTicketB: null,
@@ -586,7 +588,7 @@
       }));
       await saveCurrentWeekToCloud(true);
       render();
-      showToast("Composizione Schedina A / B riallineata alle partite attuali!", "success");
+      showToast("Composizione Schedina A e Schedina B riallineata separatamente!", "success");
     };
 
     function syncFrozenListWithPicks(frozenMetaList = [], currentPicks = []) {
@@ -849,7 +851,8 @@
             checkedA: data.activePlay.checkedA || {},
             checkedB: data.activePlay.checkedB || {},
             receipts: data.activePlay.receipts || [],
-            receiptCheckReport: data.activePlay.receiptCheckReport || null,
+            receiptCheckReportA: data.activePlay.receiptCheckReportA || data.activePlay.receiptCheckReport || null,
+            receiptCheckReportB: data.activePlay.receiptCheckReportB || null,
             cashChargedAmount: typeof data.activePlay.cashChargedAmount === 'number' ? data.activePlay.cashChargedAmount : null,
             frozenTicketA: data.activePlay.frozenTicketA || null,
             frozenTicketB: data.activePlay.frozenTicketB || null,
@@ -1342,9 +1345,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return Array.isArray(parsed.items) ? parsed.items : [];
     }
 
-    function buildCheckReportFromExtractedItems(items = [], batchPicks = [], receiptsCount = 1) {
+    // Costruisce il report di allineamento per UNA singola schedina (A oppure B)
+    function buildSingleTicketCheckReport(items = [], ticketPicks = [], ticketType = 'A', receiptsCount = 1) {
       if (!Array.isArray(items) || items.length === 0) return null;
-      const picks = Array.isArray(batchPicks) ? batchPicks : [];
+      const picks = Array.isArray(ticketPicks) ? ticketPicks : [];
       const matched = [];
       const mismatches = [];
       const unmatched = [];
@@ -1391,6 +1395,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }));
 
       return {
+        ticketType,
         checkedAt: Date.now(),
         receiptsChecked: receiptsCount,
         totalExtracted: items.length,
@@ -1414,12 +1419,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return '';
     }
 
-    async function verifyReceiptAgainstPicks(base64DataOrNull, batchPicks = [], batchReceipts = [], extraBase64 = '') {
+    // Verifica una singola schedina ('A' o 'B') contro i cedolini associati o disponibili
+    async function verifySingleTicketAgainstReceipts(ticketType, ticketPicks = [], batchReceipts = [], specificReceipt = null) {
       try {
+        const targetReceipts = specificReceipt
+          ? [specificReceipt]
+          : (Array.isArray(batchReceipts) ? batchReceipts : []);
+
         const allItems = [];
         let receiptsCount = 0;
 
-        for (const rc of (Array.isArray(batchReceipts) ? batchReceipts : [])) {
+        for (const rc of targetReceipts) {
           try {
             const b64 = await getBase64FromReceiptObj(rc);
             if (b64) {
@@ -1430,17 +1440,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           } catch (_) {}
         }
 
-        const directB64 = extraBase64 || base64DataOrNull || '';
-        if (directB64 && receiptsCount === 0) {
-          receiptsCount = 1;
-          const extracted = await extractItemsFromReceiptBase64(directB64);
-          if (extracted.length > 0) allItems.push(...extracted);
-        }
-
         if (allItems.length === 0) return null;
-        return buildCheckReportFromExtractedItems(allItems, batchPicks, receiptsCount);
+        return buildSingleTicketCheckReport(allItems, ticketPicks, ticketType, receiptsCount);
       } catch (err) {
-        console.warn("Errore verifica quote cedolino:", err);
+        console.warn(`Errore verifica cedolino Schedina ${ticketType}:`, err);
         return null;
       }
     }
@@ -2125,7 +2128,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         checkedA: {},
         checkedB: {},
         receipts: [],
-        receiptCheckReport: null,
+        receiptCheckReportA: null,
+        receiptCheckReportB: null,
         cashChargedAmount: null,
         frozenTicketA: initialCalc.ticketA.picks.map(p => ({
           id: p.id,
@@ -2283,11 +2287,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       pk.quota = Number(parsed.toFixed(2));
 
-      if (batch.receiptCheckReport?.mismatches) {
-        batch.receiptCheckReport.mismatches = batch.receiptCheckReport.mismatches.filter(
-          m => !(m.pickId === pickId && Math.abs(m.receiptQuota - pk.quota) <= 0.009)
-        );
-      }
+      ['receiptCheckReportA', 'receiptCheckReportB'].forEach(repKey => {
+        if (batch[repKey]?.mismatches) {
+          batch[repKey].mismatches = batch[repKey].mismatches.filter(
+            m => !(m.pickId === pickId && Math.abs(m.receiptQuota - pk.quota) <= 0.009)
+          );
+        }
+      });
+
       await saveCurrentWeekToCloud(true);
       render();
       showToast(`Quota aggiornata a ${pk.quota.toFixed(2)} (schedina invariata)`, "success");
@@ -2370,7 +2377,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Partita aggiornata a "${newPartita}" nella stessa posizione!`, "success");
     };
 
-    window.replacePickWithReceiptItem = async function(pickId, newPartita, newMercato, newQuota) {
+    window.replacePickWithReceiptItem = async function(ticketType, pickId, newPartita, newMercato, newQuota) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
@@ -2384,23 +2391,25 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       pk.quota = Number(Number(newQuota).toFixed(2));
       pk.status = 'pending';
 
-      if (batch.receiptCheckReport) {
-        batch.receiptCheckReport.missingFromReceipt = (batch.receiptCheckReport.missingFromReceipt || []).filter(m => m.pickId !== pickId);
-        batch.receiptCheckReport.unmatched = (batch.receiptCheckReport.unmatched || []).filter(u => normalizeMatch(u.partita) !== normalizeMatch(newPartita));
+      const repKey = ticketType === 'B' ? 'receiptCheckReportB' : 'receiptCheckReportA';
+      if (batch[repKey]) {
+        batch[repKey].missingFromReceipt = (batch[repKey].missingFromReceipt || []).filter(m => m.pickId !== pickId);
+        batch[repKey].unmatched = (batch[repKey].unmatched || []).filter(u => normalizeMatch(u.partita) !== normalizeMatch(newPartita));
       }
 
       await saveCurrentWeekToCloud(true);
       render();
-      showToast(`Sostituita con "${newPartita}" @${pk.quota.toFixed(2)}!`, "success");
+      showToast(`Schedina ${ticketType}: sostituita con "${newPartita}" @${pk.quota.toFixed(2)}!`, "success");
     };
 
-    window.applyAllReceiptQuotas = async function() {
+    window.applyAllTicketReceiptQuotas = async function(ticketType) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
       ensureBatchCompositionFrozen(batch, true);
 
-      const mismatches = batch.receiptCheckReport?.mismatches || [];
+      const repKey = ticketType === 'B' ? 'receiptCheckReportB' : 'receiptCheckReportA';
+      const mismatches = batch[repKey]?.mismatches || [];
       if (mismatches.length === 0) return;
 
       mismatches.forEach(m => {
@@ -2410,17 +2419,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
       });
 
-      batch.receiptCheckReport.mismatches = [];
+      batch[repKey].mismatches = [];
       await saveCurrentWeekToCloud(true);
       render();
-      showToast("Quote allineate ai cedolini senza spostare le partite!", "success");
+      showToast(`Quote di Schedina ${ticketType} allineate senza spostare le partite!`, "success");
     };
 
-    window.dismissReceiptReport = async function() {
+    window.dismissTicketReceiptReport = async function(ticketType) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
       if (!batch || batch.isDraft) return;
-      batch.receiptCheckReport = null;
+      const repKey = ticketType === 'B' ? 'receiptCheckReportB' : 'receiptCheckReportA';
+      batch[repKey] = null;
       await saveCurrentWeekToCloud(true);
       render();
     };
@@ -2589,25 +2599,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
 
         await saveCurrentWeekToCloud(true);
-
-        if (runtimeGeminiKey && batch.receipts.length > 0) {
-          try {
-            const aiPromise = verifyReceiptAgainstPicks(null, batch.picks, batch.receipts);
-            const aiTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 12000));
-            const report = await Promise.race([aiPromise, aiTimeout]);
-            if (report && report.totalExtracted > 0) {
-              batch.receiptCheckReport = report;
-              await saveCurrentWeekToCloud(true);
-            }
-          } catch (_) {}
-        }
       } finally {
         state.uploadingReceipts = false;
         render();
       }
 
       if (uploadedCount > 0) {
-        showToast(`${uploadedCount} cedolin${uploadedCount === 1 ? 'o caricato' : 'i caricati'}!`, "success");
+        showToast(`${uploadedCount} cedolin${uploadedCount === 1 ? 'o caricato' : 'i caricati'}! Usa Check A / Check B per verificare le due schedine.`, "success");
         const alreadyCharged = typeof batch.cashChargedAmount === 'number' && batch.cashChargedAmount > 0;
         if (!alreadyCharged) {
           openChargeBatchCashModal(batch.id, 10.00);
@@ -2617,7 +2615,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     };
 
-    window.recheckAllBatchReceipts = async function() {
+    // Verifica separata per Schedina A o Schedina B (su un cedolino specifico o su tutti i cedolini)
+    window.runSeparateTicketReceiptCheck = async function(ticketType, specificReceiptId = null) {
       if (!isAdmin()) {
         showToast("Solo l'Admin può verificare i cedolini.", "warning");
         return;
@@ -2631,64 +2630,38 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
 
       ensureBatchCompositionFrozen(batch, true);
-      state.checkingAllReceipts = true;
+      const calc = computeBatchTickets(batch);
+      const targetPicks = ticketType === 'B' ? calc.ticketB.picks : calc.ticketA.picks;
+      const specificRc = specificReceiptId ? rcs.find(r => r.id === specificReceiptId) : null;
+
+      if (specificReceiptId) state.checkingReceiptId = `${ticketType}_${specificReceiptId}`;
+      else state.checkingTicketKey = ticketType;
       render();
 
       try {
-        const report = await verifyReceiptAgainstPicks(null, batch.picks, rcs);
+        const report = await verifySingleTicketAgainstReceipts(ticketType, targetPicks, rcs, specificRc);
         if (report) {
-          batch.receiptCheckReport = report;
+          const repKey = ticketType === 'B' ? 'receiptCheckReportB' : 'receiptCheckReportA';
+          batch[repKey] = report;
           await saveCurrentWeekToCloud(true);
-          if (report.mismatches.length > 0 || (report.missingFromReceipt && report.missingFromReceipt.length > 0)) {
-            showToast("Verifica completata: controlla partite e quote segnalate.", "warning");
+
+          const hasIssues = (report.mismatches && report.mismatches.length > 0) ||
+            (report.missingFromReceipt && report.missingFromReceipt.length > 0) ||
+            (report.unmatched && report.unmatched.length > 0);
+          if (hasIssues) {
+            showToast(`Schedina ${ticketType}: rilevate differenze di quote o partite.`, "warning");
           } else {
-            showToast("Verifica completata su tutti i cedolini: tutto allineato!", "success");
+            showToast(`Schedina ${ticketType}: partite e quote allineate!`, "success");
           }
         } else {
-          showToast("Impossibile leggere le quote dai cedolini.", "warning");
+          showToast(`Impossibile leggere i dati per Schedina ${ticketType}.`, "warning");
         }
       } catch (err) {
-        console.error("Errore verifica cumulativa cedolini:", err);
-        showToast("Errore durante la verifica dei cedolini.", "error");
-      } finally {
-        state.checkingAllReceipts = false;
-        render();
-      }
-    };
-
-    window.recheckExistingReceipt = async function(receiptId) {
-      if (!isAdmin()) {
-        showToast("Solo l'Admin può verificare i cedolini.", "warning");
-        return;
-      }
-      const batch = getActiveSchedineBatch();
-      if (!batch || batch.isDraft) return;
-      ensureBatchCompositionFrozen(batch, true);
-
-      const rc = (batch.receipts || []).find(r => r.id === receiptId);
-      if (!rc) return;
-
-      state.checkingReceiptId = receiptId;
-      render();
-
-      try {
-        const report = await verifyReceiptAgainstPicks(null, batch.picks, batch.receipts || [rc]);
-        if (report) {
-          batch.receiptCheckReport = report;
-          await saveCurrentWeekToCloud(true);
-          if (report.mismatches.length > 0 || (report.missingFromReceipt && report.missingFromReceipt.length > 0)) {
-            showToast("Verifica completata: controlla le segnalazioni su partite o quote.", "warning");
-          } else {
-            showToast("Verifica completata: partite e quote coincidono!", "success");
-          }
-        } else {
-          showToast("Impossibile leggere le quote da questo cedolino.", "warning");
-        }
-      } catch (err) {
-        console.error("Errore ri-verifica cedolino:", err);
+        console.error(`Errore verifica Schedina ${ticketType}:`, err);
         showToast("Errore durante il controllo del cedolino.", "error");
       } finally {
         state.checkingReceiptId = null;
+        state.checkingTicketKey = null;
         render();
       }
     };
@@ -2726,14 +2699,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         </div>
         <div class="p-4 overflow-y-auto flex flex-col items-center gap-3">
           <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="max-h-[60vh] w-auto rounded-2xl border border-white/10 object-contain" />
-          <div class="grid grid-cols-2 gap-2 w-full">
+          <div class="grid grid-cols-3 gap-2 w-full">
             ${isAdmin() ? `
-              <button onclick="closeModal(); recheckExistingReceipt('${rc.id}');" class="py-2.5 rounded-xl bg-[#22C55E]/20 text-[#4ADE80] font-bold text-xs">
-                🔍 Verifica quote AI
+              <button onclick="closeModal(); runSeparateTicketReceiptCheck('A', '${rc.id}');" class="py-2.5 rounded-xl bg-[#22C55E]/20 text-[#4ADE80] font-bold text-xs">
+                🔍 Check A
               </button>
-            ` : `<div></div>`}
+              <button onclick="closeModal(); runSeparateTicketReceiptCheck('B', '${rc.id}');" class="py-2.5 rounded-xl bg-[#22C55E]/20 text-[#4ADE80] font-bold text-xs">
+                🔍 Check B
+              </button>
+            ` : `<div></div><div></div>`}
             <button onclick="deleteReceipt('${rc.id}'); closeModal();" class="py-2.5 rounded-xl bg-red-500/15 text-red-400 font-bold text-xs">
-              Elimina cedolino
+              Elimina
             </button>
           </div>
         </div>
@@ -2774,7 +2750,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.5 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.6 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -3198,7 +3174,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-xs text-gray-400">Release v2.5 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-xs text-gray-400">Release v2.6 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3733,6 +3709,89 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       `;
     }
 
+    function buildSingleTicketCheckReportHtml(report, ticketType) {
+      if (!report || !isAdmin()) return '';
+      const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
+      const hasUnmatched = Array.isArray(report.unmatched) && report.unmatched.length > 0;
+      const hasMissing = Array.isArray(report.missingFromReceipt) && report.missingFromReceipt.length > 0;
+      const matchedList = Array.isArray(report.matched) ? report.matched : [];
+      const matchedCount = matchedList.length;
+      const hasAnyIssue = hasMismatches || hasUnmatched || hasMissing;
+
+      const singleSwapCandidate = (hasMissing && hasUnmatched && report.missingFromReceipt.length === 1 && report.unmatched.length === 1)
+        ? { oldPick: report.missingFromReceipt[0], newReceiptItem: report.unmatched[0] }
+        : null;
+
+      return `
+        <div class="m-3 p-3.5 rounded-2xl border ${hasAnyIssue ? 'bg-amber-500/15 border-amber-500/45' : 'bg-[#22C55E]/15 border-[#22C55E]/40'} space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-extrabold ${hasAnyIssue ? 'text-amber-300' : 'text-[#4ADE80]'}">
+              ${!hasAnyIssue
+                ? `✅ Check Schedina ${ticketType}: tutto allineato (${matchedCount} OK)`
+                : `⚠️ Check Schedina ${ticketType}: ${matchedCount} OK${hasMismatches ? ' · ' + report.mismatches.length + ' quote diverse' : ''}${hasUnmatched ? ' · ' + report.unmatched.length + ' extra su cedolino' : ''}${hasMissing ? ' · ' + report.missingFromReceipt.length + ' assenti su cedolino' : ''}`}
+            </span>
+            <button type="button" onclick="dismissTicketReceiptReport('${ticketType}')" class="text-xs text-gray-400 hover:text-white">✕</button>
+          </div>
+
+          ${matchedCount > 0 ? `
+            <div class="space-y-1 text-xs text-gray-300">
+              <div class="font-bold text-white">Partite confermate su cedolino:</div>
+              ${matchedList.map(m => `<div>• ${escapeHtml(m.partita)} — quota <strong>@${Number(m.quota).toFixed(2)}</strong></div>`).join('')}
+            </div>
+          ` : ''}
+
+          ${singleSwapCandidate ? `
+            <div class="p-2.5 rounded-xl bg-[#121212] border border-[#C8102E]/40 flex items-center justify-between gap-2 flex-wrap">
+              <div class="text-xs text-gray-200 min-w-0">
+                <div>Partita cambiata su cedolino per <strong>${escapeHtml(singleSwapCandidate.oldPick.playerName)}</strong>:</div>
+                <div><span class="line-through text-red-400">${escapeHtml(singleSwapCandidate.oldPick.partita)}</span> → <strong class="text-[#4ADE80]">${escapeHtml(singleSwapCandidate.newReceiptItem.partita)} (@${singleSwapCandidate.newReceiptItem.receiptQuota.toFixed(2)})</strong></div>
+              </div>
+              <button type="button"
+                onclick="replacePickWithReceiptItem('${ticketType}', '${singleSwapCandidate.oldPick.pickId}', '${escapeJs(singleSwapCandidate.newReceiptItem.partita)}', '${escapeJs(singleSwapCandidate.newReceiptItem.mercatoEsito)}', '${singleSwapCandidate.newReceiptItem.receiptQuota}')"
+                class="px-3 py-1.5 rounded-lg bg-[#C8102E] hover:bg-[#E01938] btn-keep-white font-extrabold text-xs shrink-0">
+                🔄 Sostituisci e Allinea
+              </button>
+            </div>
+          ` : ''}
+
+          ${hasMismatches ? `
+            <div class="space-y-1.5">
+              ${report.mismatches.map(m => `
+                <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#121212] text-xs">
+                  <div class="min-w-0">
+                    <div class="font-bold text-white truncate">${escapeHtml(m.partita)}</div>
+                    <div class="text-gray-400">App: <span class="line-through">${m.appQuota.toFixed(2)}</span> → Cedolino: <strong class="text-amber-300">${m.receiptQuota.toFixed(2)}</strong></div>
+                  </div>
+                  <button type="button" onclick="updatePickFinalQuota('${m.pickId}', '${m.receiptQuota}')"
+                    class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-xs shrink-0">
+                    Allinea
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+            <button type="button" onclick="applyAllTicketReceiptQuotas('${ticketType}')"
+              class="w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#121212] font-extrabold text-xs transition">
+              Allinea tutte le quote di Schedina ${ticketType} (${report.mismatches.length})
+            </button>
+          ` : ''}
+
+          ${hasUnmatched && !singleSwapCandidate ? `
+            <div class="p-2 rounded-xl bg-[#121212] text-xs text-amber-200 space-y-1">
+              <div class="font-bold">⚽ Partite sul cedolino non abbinate a Schedina ${ticketType}:</div>
+              ${report.unmatched.map(u => `<div>• ${escapeHtml(u.partita)} (@${u.receiptQuota.toFixed(2)})</div>`).join('')}
+            </div>
+          ` : ''}
+
+          ${hasMissing && !singleSwapCandidate ? `
+            <div class="p-2 rounded-xl bg-[#121212] text-xs text-red-300 space-y-1">
+              <div class="font-bold">🚫 Partite di Schedina ${ticketType} non trovate sul cedolino:</div>
+              ${report.missingFromReceipt.map(m => `<div>• ${escapeHtml(m.partita)} (${escapeHtml(m.playerName)} @${m.quota.toFixed(2)})</div>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
     function renderSchedineTab() {
       const adminMode = isAdmin();
       const canPlay = isSignedInPlayer();
@@ -3754,13 +3813,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const isDraftView = !!currentBatch.isDraft;
       const calc = computeBatchTickets(currentBatch);
       const receipts = Array.isArray(currentBatch.receipts) ? currentBatch.receipts : [];
-      const report = currentBatch.receiptCheckReport;
+      const reportA = currentBatch.receiptCheckReportA;
+      const reportB = currentBatch.receiptCheckReportB;
       const chargedAmount = typeof currentBatch.cashChargedAmount === 'number' && currentBatch.cashChargedAmount > 0
         ? currentBatch.cashChargedAmount
         : 0;
-      const mismatchMap = {};
-      if (report && Array.isArray(report.mismatches)) {
-        report.mismatches.forEach(m => { mismatchMap[m.pickId] = m; });
+
+      const mismatchMapA = {};
+      if (reportA && Array.isArray(reportA.mismatches)) {
+        reportA.mismatches.forEach(m => { mismatchMapA[m.pickId] = m; });
+      }
+      const mismatchMapB = {};
+      if (reportB && Array.isArray(reportB.mismatches)) {
+        reportB.mismatches.forEach(m => { mismatchMapB[m.pickId] = m; });
       }
 
       const batchSelectorHtml = `
@@ -3806,89 +3871,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         </div>
       `;
 
-      let checkReportHtml = '';
-      if (report && adminMode) {
-        const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
-        const hasUnmatched = Array.isArray(report.unmatched) && report.unmatched.length > 0;
-        const hasMissing = Array.isArray(report.missingFromReceipt) && report.missingFromReceipt.length > 0;
-        const matchedList = Array.isArray(report.matched) ? report.matched : [];
-        const matchedCount = matchedList.length;
-        const hasAnyIssue = hasMismatches || hasUnmatched || hasMissing;
-
-        const singleSwapCandidate = (hasMissing && hasUnmatched && report.missingFromReceipt.length === 1 && report.unmatched.length === 1)
-          ? { oldPick: report.missingFromReceipt[0], newReceiptItem: report.unmatched[0] }
-          : null;
-
-        checkReportHtml = `
-          <div class="p-3.5 rounded-2xl border ${hasAnyIssue ? 'bg-amber-500/15 border-amber-500/45' : 'bg-[#22C55E]/15 border-[#22C55E]/40'} space-y-2.5">
-            <div class="flex items-center justify-between gap-2">
-              <span class="text-xs font-extrabold ${hasAnyIssue ? 'text-amber-300' : 'text-[#4ADE80]'}">
-                ${!hasAnyIssue
-                  ? `✅ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): tutto allineato (${matchedCount} OK)`
-                  : `⚠️ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): ${matchedCount} OK${hasMismatches ? ' · ' + report.mismatches.length + ' quote diverse' : ''}${hasUnmatched ? ' · ' + report.unmatched.length + ' extra su cedolino' : ''}${hasMissing ? ' · ' + report.missingFromReceipt.length + ' assenti sui cedolini' : ''}`}
-              </span>
-              <button type="button" onclick="dismissReceiptReport()" class="text-xs text-gray-400 hover:text-white">✕</button>
-            </div>
-
-            ${matchedCount > 0 ? `
-              <div class="text-xs text-gray-300">
-                Abbinate con quota conforme: <strong>${matchedList.map(m => `${escapeHtml(m.partita)} (@${Number(m.quota).toFixed(2)})`).join(' · ')}</strong>
-              </div>
-            ` : ''}
-
-            ${singleSwapCandidate ? `
-              <div class="p-2.5 rounded-xl bg-[#121212] border border-[#C8102E]/40 flex items-center justify-between gap-2 flex-wrap">
-                <div class="text-xs text-gray-200 min-w-0">
-                  <div>Partita cambiata sul cedolino per <strong>${escapeHtml(singleSwapCandidate.oldPick.playerName)}</strong>:</div>
-                  <div><span class="line-through text-red-400">${escapeHtml(singleSwapCandidate.oldPick.partita)}</span> → <strong class="text-[#4ADE80]">${escapeHtml(singleSwapCandidate.newReceiptItem.partita)} (@${singleSwapCandidate.newReceiptItem.receiptQuota.toFixed(2)})</strong></div>
-                </div>
-                <button type="button"
-                  onclick="replacePickWithReceiptItem('${singleSwapCandidate.oldPick.pickId}', '${escapeJs(singleSwapCandidate.newReceiptItem.partita)}', '${escapeJs(singleSwapCandidate.newReceiptItem.mercatoEsito)}', '${singleSwapCandidate.newReceiptItem.receiptQuota}')"
-                  class="px-3 py-1.5 rounded-lg bg-[#C8102E] hover:bg-[#E01938] btn-keep-white font-extrabold text-xs shrink-0">
-                  🔄 Sostituisci e Allinea
-                </button>
-              </div>
-            ` : ''}
-
-            ${hasMismatches ? `
-              <div class="space-y-1.5">
-                ${report.mismatches.map(m => `
-                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#121212] text-xs">
-                    <div class="min-w-0">
-                      <div class="font-bold text-white truncate">${escapeHtml(m.partita)}</div>
-                      <div class="text-gray-400">App: <span class="line-through">${m.appQuota.toFixed(2)}</span> → Cedolino: <strong class="text-amber-300">${m.receiptQuota.toFixed(2)}</strong></div>
-                    </div>
-                    <button type="button" onclick="updatePickFinalQuota('${m.pickId}', '${m.receiptQuota}')"
-                      class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-xs shrink-0">
-                      Allinea
-                    </button>
-                  </div>
-                `).join('')}
-              </div>
-              <button type="button" onclick="applyAllReceiptQuotas()"
-                class="w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#121212] font-extrabold text-xs transition">
-                Allinea tutte le quote ai cedolini (${report.mismatches.length})
-              </button>
-            ` : ''}
-
-            ${hasUnmatched && !singleSwapCandidate ? `
-              <div class="p-2 rounded-xl bg-[#121212] text-xs text-amber-200 space-y-0.5">
-                <div class="font-bold">⚽ Partite sul cedolino non trovate nella puntata:</div>
-                <div>${report.unmatched.map(u => `${escapeHtml(u.partita)} (@${u.receiptQuota.toFixed(2)})`).join(' · ')}</div>
-              </div>
-            ` : ''}
-
-            ${hasMissing && !singleSwapCandidate ? `
-              <div class="p-2 rounded-xl bg-[#121212] text-xs text-red-300 space-y-0.5">
-                <div class="font-bold">🚫 Partite nella puntata ma assenti su tutti i cedolini caricati:</div>
-                <div>${report.missingFromReceipt.map(m => `${escapeHtml(m.partita)} (${escapeHtml(m.playerName)} @${m.quota.toFixed(2)})`).join(' · ')}</div>
-              </div>
-            ` : ''}
-          </div>
-        `;
-      }
-
-      const renderTicketRow = (pk, ticketType, isTicketClosed) => {
+      const renderTicketRow = (pk, ticketType, isTicketClosed, mismatchMap) => {
         const isChecked = !!(currentBatch[ticketType === 'A' ? 'checkedA' : 'checkedB']?.[pk.id]);
         const mm = mismatchMap[pk.id];
         return `
@@ -4026,27 +4009,32 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             : `<span class="px-2.5 py-1 rounded-lg border border-[#C8102E]/60 bg-[#C8102E]/15 text-[#FF8A98] text-xs font-black">Sistema 1 errore</span>`;
 
       const receiptsHtml = receipts.length === 0
-        ? `<div class="text-xs text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai verificare partite/quote e scalare il costo in cassa.</div>`
-        : `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
+        ? `<div class="text-xs text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai verificare separatamente Schedina A e Schedina B e scalare il costo in cassa.</div>`
+        : `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
             ${receipts.map(rc => {
               const imgSrc = rc.url || rc.dataUrl;
-              const isCheckingThis = state.checkingReceiptId === rc.id;
+              const isCheckingA = state.checkingReceiptId === `A_${rc.id}`;
+              const isCheckingB = state.checkingReceiptId === `B_${rc.id}`;
               return `
                 <div class="relative rounded-xl overflow-hidden border border-white/10 bg-[#121212] flex flex-col">
                   <button type="button" onclick="openReceiptPreview('${rc.id}')" class="block w-full text-left">
                     <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="w-full h-24 object-cover" />
-                    <div class="px-2 pt-1.5 text-xs text-gray-300 truncate">${escapeHtml(rc.name)}</div>
+                    <div class="px-2.5 pt-1.5 text-xs text-gray-300 truncate">${escapeHtml(rc.name)}</div>
                   </button>
-                  <div class="p-1.5 flex items-center justify-between gap-1">
+                  <div class="p-1.5 flex items-center justify-between gap-1 flex-wrap">
                     ${adminMode ? `
-                      <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis || state.checkingAllReceipts ? 'disabled' : ''}
-                        class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-xs transition">
-                        ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
+                      <button type="button" onclick="runSeparateTicketReceiptCheck('A', '${rc.id}')" ${isCheckingA || isCheckingB ? 'disabled' : ''}
+                        class="flex-1 py-1.5 px-2 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-xs transition">
+                        ${isCheckingA ? 'Check A...' : '🔍 Check A'}
+                      </button>
+                      <button type="button" onclick="runSeparateTicketReceiptCheck('B', '${rc.id}')" ${isCheckingA || isCheckingB ? 'disabled' : ''}
+                        class="flex-1 py-1.5 px-2 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-xs transition">
+                        ${isCheckingB ? 'Check B...' : '🔍 Check B'}
                       </button>
                     ` : `<span class="text-xs text-gray-500 px-1">Allegato</span>`}
                     ${canPlay ? `
                       <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
-                        class="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-xs font-bold">✕</button>
+                        class="px-2 py-1.5 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-xs font-bold">✕</button>
                     ` : ''}
                   </div>
                 </div>
@@ -4081,7 +4069,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-[#C8102E] btn-keep-white">
                 🔴⚫ ${escapeHtml(stripDemoText(currentBatch.label))}
               </span>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 ${adminMode && !closedA && !closedB ? `
                   <button type="button" onclick="refreezeBatchFromCurrentPicks('${currentBatch.id}')"
                     class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 transition">
@@ -4097,14 +4085,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div>
-                  <div class="text-sm font-bold text-white">Cedolini Sisal, Check Partite/Quote & Scarico Cassa</div>
-                  <div class="text-xs text-gray-400">Verifica partite e quote su tutti i cedolini e scala il costo in cassa.</div>
+                  <div class="text-sm font-bold text-white">Cedolini Sisal & Scarico Cassa</div>
+                  <div class="text-xs text-gray-400">Verifica separatamente Schedina A e Schedina B sui cedolini e scala il costo in cassa.</div>
                 </div>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   ${adminMode && receipts.length > 0 ? `
-                    <button type="button" onclick="recheckAllBatchReceipts()" ${state.checkingAllReceipts || state.uploadingReceipts ? 'disabled' : ''}
+                    <button type="button" onclick="runSeparateTicketReceiptCheck('A')" ${state.checkingTicketKey === 'A' || state.uploadingReceipts ? 'disabled' : ''}
                       class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-[#FF8A98] font-bold text-xs shrink-0 transition">
-                      ${state.checkingAllReceipts ? 'Verifica...' : '🔍 Check Tutti'}
+                      ${state.checkingTicketKey === 'A' ? 'Check A...' : '🔍 Check Schedina A'}
+                    </button>
+                    <button type="button" onclick="runSeparateTicketReceiptCheck('B')" ${state.checkingTicketKey === 'B' || state.uploadingReceipts ? 'disabled' : ''}
+                      class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-[#FF8A98] font-bold text-xs shrink-0 transition">
+                      ${state.checkingTicketKey === 'B' ? 'Check B...' : '🔍 Check Schedina B'}
                     </button>
                   ` : ''}
                   ${canPlay ? `
@@ -4130,8 +4122,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 </div>
               ` : ''}
             </div>
-
-            ${checkReportHtml}
           </section>
         ` : ''}
 
@@ -4177,10 +4167,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ` : ''}
             </div>
 
+            ${buildSingleTicketCheckReportHtml(reportA, 'A')}
             ${renderAIResultPreviewBox('A')}
 
             <div>
-              ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A', !!closedA)).join('')}
+              ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A', !!closedA, mismatchMapA)).join('')}
             </div>
           </section>
 
@@ -4244,10 +4235,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
             </div>
 
+            ${buildSingleTicketCheckReportHtml(reportB, 'B')}
             ${renderAIResultPreviewBox('B')}
 
             <div>
-              ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B', !!closedB)).join('')}
+              ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B', !!closedB, mismatchMapB)).join('')}
             </div>
           </section>
         </div>
