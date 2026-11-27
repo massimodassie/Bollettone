@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.7 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.8 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -192,7 +192,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-black tracking-tight text-xl leading-none text-white">BOLLETTONE</h1>
-            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.7</span>
+            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.8</span>
             <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -1298,7 +1298,6 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       }
     }
 
-    // Estrae le partite/quote e classifica automaticamente se il cedolino appartiene a Schedina A o Schedina B
     async function classifyAndExtractReceiptBase64(base64Data, picksA = [], picksB = []) {
       if (!base64Data) return { ticketType: null, items: [] };
       const listAStr = (picksA || []).map((p, i) => `${i + 1}. ${p.partita} (@${Number(p.quota).toFixed(2)})`).join(', ');
@@ -1487,16 +1486,41 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       return '';
     }
 
-    async function verifySingleTicketAgainstReceipts(ticketType, ticketPicks = [], batchReceipts = [], specificReceipt = null) {
+    // Controlla SOLO i cedolini assegnati a ticketType (o classifica quelli senza assegnazione senza mai mischiare A e B)
+    async function verifySingleTicketAgainstReceipts(ticketType, ticketPicks = [], batchReceipts = [], specificReceipt = null, otherTicketPicks = []) {
       try {
         const allReceipts = Array.isArray(batchReceipts) ? batchReceipts : [];
-        let targetReceipts = specificReceipt
-          ? [specificReceipt]
-          : allReceipts.filter(r => !r.assignedTicket || r.assignedTicket === ticketType);
+        let targetReceipts = [];
 
-        if (targetReceipts.length === 0 && !specificReceipt) {
-          targetReceipts = allReceipts;
+        if (specificReceipt) {
+          targetReceipts = [specificReceipt];
+        } else {
+          targetReceipts = allReceipts.filter(r => r.assignedTicket === ticketType);
+          if (targetReceipts.length === 0) {
+            for (const rc of allReceipts) {
+              if (!rc.assignedTicket && runtimeGeminiKey) {
+                try {
+                  const b64 = await getBase64FromReceiptObj(rc);
+                  if (b64) {
+                    const cls = await classifyAndExtractReceiptBase64(
+                      b64,
+                      ticketType === 'A' ? ticketPicks : otherTicketPicks,
+                      ticketType === 'B' ? ticketPicks : otherTicketPicks
+                    );
+                    if (cls.ticketType === ticketType) {
+                      rc.assignedTicket = ticketType;
+                      targetReceipts.push(rc);
+                    } else if (cls.ticketType) {
+                      rc.assignedTicket = cls.ticketType;
+                    }
+                  }
+                } catch (_) {}
+              }
+            }
+          }
         }
+
+        if (targetReceipts.length === 0) return null;
 
         const allItems = [];
         let receiptsCount = 0;
@@ -1519,6 +1543,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         return null;
       }
     }
+
+    window.setReceiptTicketAssignment = async function(receiptId, ticketType) {
+      if (!isAdmin()) return;
+      const batch = getActiveSchedineBatch();
+      if (!batch || batch.isDraft) return;
+      const rc = (batch.receipts || []).find(r => r.id === receiptId);
+      if (!rc) return;
+      rc.assignedTicket = rc.assignedTicket === ticketType ? '' : ticketType;
+      await saveCurrentWeekToCloud(true);
+      render();
+      showToast(rc.assignedTicket ? `Cedolino assegnato a Schedina ${rc.assignedTicket}` : "Assegnazione cedolino rimossa", "info");
+    };
 
     function findBestMatchingPick(partitaStr, candidatePicks) {
       const normItem = normalizeMatch(partitaStr);
@@ -2474,7 +2510,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Schedina ${ticketType}: sostituita con "${newPartita}" @${pk.quota.toFixed(2)}!`, "success");
     };
 
-    // Allinea direttamente le righe non abbinate o mancanti sul report della schedina (A o B)
     window.alignTicketFromReport = async function(ticketType) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
@@ -2487,7 +2522,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       let changes = 0;
 
-      // 1. Allinea eventuali quote diverse
       (rep.mismatches || []).forEach(m => {
         const pk = (batch.picks || []).find(p => p.id === m.pickId);
         if (pk && m.receiptQuota >= 1.01) {
@@ -2496,7 +2530,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
       });
 
-      // 2. Sostituisce le partite assenti sul cedolino con quelle extra rilevate sul cedolino per la stessa schedina
       const missingList = [...(rep.missingFromReceipt || [])];
       const extraList = [...(rep.unmatched || [])];
       const swapCount = Math.min(missingList.length, extraList.length);
@@ -2635,7 +2668,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Scalati ${formatEuro(newCost)} dalla Cassa per ${cleanLabel}!`, "success");
     };
 
-    // All'atto del caricamento, l'AI riconosce automaticamente quale cedolino è A e quale è B e genera i report separati
     window.handleReceiptUpload = async function(e) {
       if (!isSignedInPlayer()) {
         showToast("Accedi per caricare i cedolini.", "warning");
@@ -2763,6 +2795,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       ensureBatchCompositionFrozen(batch, true);
       const calc = computeBatchTickets(batch);
       const targetPicks = ticketType === 'B' ? calc.ticketB.picks : calc.ticketA.picks;
+      const otherPicks = ticketType === 'B' ? calc.ticketA.picks : calc.ticketB.picks;
       const specificRc = specificReceiptId ? rcs.find(r => r.id === specificReceiptId) : null;
 
       if (specificReceiptId) state.checkingReceiptId = `${ticketType}_${specificReceiptId}`;
@@ -2770,7 +2803,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
 
       try {
-        const report = await verifySingleTicketAgainstReceipts(ticketType, targetPicks, rcs, specificRc);
+        const report = await verifySingleTicketAgainstReceipts(ticketType, targetPicks, rcs, specificRc, otherPicks);
         if (report) {
           const repKey = ticketType === 'B' ? 'receiptCheckReportB' : 'receiptCheckReportA';
           batch[repKey] = report;
@@ -2785,7 +2818,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             showToast(`Schedina ${ticketType}: partite e quote allineate!`, "success");
           }
         } else {
-          showToast(`Impossibile leggere i dati per Schedina ${ticketType}.`, "warning");
+          showToast(`Nessun cedolino assegnato o leggibile per Schedina ${ticketType}. Usa i tasti A / B sul cedolino.`, "warning");
         }
       } catch (err) {
         console.error(`Errore verifica Schedina ${ticketType}:`, err);
@@ -2824,7 +2857,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-sm text-white truncate">${escapeHtml(rc.name)}</h3>
-            <p class="text-xs text-gray-400">${rc.assignedTicket ? `Riconosciuto per Schedina ${rc.assignedTicket}` : (rc.url ? 'Salvato su Firebase Storage' : 'Cedolino salvato')}</p>
+            <p class="text-xs text-gray-400">${rc.assignedTicket ? `Assegnato a Schedina ${rc.assignedTicket}` : (rc.url ? 'Salvato su Firebase Storage' : 'Cedolino salvato')}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2881,7 +2914,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.7 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.8 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -3305,7 +3338,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-xs text-gray-400">Release v2.7 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-xs text-gray-400">Release v2.8 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -4158,6 +4191,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   </button>
                   <div class="p-1.5 flex items-center justify-between gap-1 flex-wrap">
                     ${adminMode ? `
+                      <button type="button" onclick="setReceiptTicketAssignment('${rc.id}', 'A')"
+                        class="px-2 py-1 rounded-lg text-xs font-black border transition ${rc.assignedTicket === 'A' ? 'bg-[#C8102E] btn-keep-white border-[#C8102E]' : 'bg-white/5 text-gray-300 border-white/10'}">
+                        A
+                      </button>
+                      <button type="button" onclick="setReceiptTicketAssignment('${rc.id}', 'B')"
+                        class="px-2 py-1 rounded-lg text-xs font-black border transition ${rc.assignedTicket === 'B' ? 'bg-[#C8102E] btn-keep-white border-[#C8102E]' : 'bg-white/5 text-gray-300 border-white/10'}">
+                        B
+                      </button>
                       <button type="button" onclick="runSeparateTicketReceiptCheck('A', '${rc.id}')" ${isCheckingA || isCheckingB ? 'disabled' : ''}
                         class="flex-1 py-1.5 px-2 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-xs transition">
                         ${isCheckingA ? 'Check A...' : '🔍 Check A'}
@@ -4221,7 +4262,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div>
                   <div class="text-sm font-bold text-white">Cedolini Sisal & Scarico Cassa</div>
-                  <div class="text-xs text-gray-400">Al caricamento l'AI assegna i cedolini a Schedina A o B; puoi anche verificare separatamente A e B.</div>
+                  <div class="text-xs text-gray-400">Assegna ciascun cedolino a Schedina A o B (con i tasti A / B o tramite AI) e verifica separatamente.</div>
                 </div>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${adminMode && receipts.length > 0 ? `
