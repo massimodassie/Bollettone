@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.8 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v3.0 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
   </script>
   <style>
     html {
-      font-size: 21px;
+      font-size: 20px;
     }
     body {
       background-color: #121212;
@@ -192,7 +192,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-black tracking-tight text-xl leading-none text-white">BOLLETTONE</h1>
-            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.8</span>
+            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v3.0</span>
             <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -864,7 +864,11 @@
       return {
         weekLabel: stripDemoText(data.weekLabel || getDefaultWeekLabel()) || getDefaultWeekLabel(),
         picks: Array.isArray(data.picks) ? data.picks : [],
-        playedBatches: batches
+        playedBatches: batches.map(b => ({
+          ...b,
+          receiptCheckReportA: b.receiptCheckReportA || null,
+          receiptCheckReportB: b.receiptCheckReportB || null
+        }))
       };
     }
 
@@ -1480,13 +1484,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
       if (rc.url) {
         const resp = await fetch(rc.url);
+        if (!resp.ok) return '';
         const blob = await resp.blob();
         return await fileToBase64(blob);
       }
       return '';
     }
 
-    // Controlla SOLO i cedolini assegnati a ticketType (o classifica quelli senza assegnazione senza mai mischiare A e B)
     async function verifySingleTicketAgainstReceipts(ticketType, ticketPicks = [], batchReceipts = [], specificReceipt = null, otherTicketPicks = []) {
       try {
         const allReceipts = Array.isArray(batchReceipts) ? batchReceipts : [];
@@ -1616,8 +1620,8 @@ ${picksContext}
 Osserva lo screenshot allegato (risultati finali, spunte verdi/rosse, stato Vincente/Perdente o partite non ancora giocate) e valuta ogni partita della lista sopra che riesci a riconoscere nello screen:
 - pickId: l'ID esatto della partita corrispondente dalla lista sopra (considera anche varianti di traduzione come Dinamo Zagabria / Dinamo Zagreb)
 - partita: nome della partita
-- status: "won" se l'esito pronosticato è risultato vincente/preso, "lost" se perdente/sbagliato, oppure "pending" se ancora in corso / non iniziata
-- reason: breve motivo (es. "2-1 finale · Presa", "Spunta verde Sisal", "0-0 · Persa", "In corso")
+- status: "won" se l'esito pronosticato è risultato vincente/preso OPPURE se la riga ha una spunta verde / icona verde di esito positivo a destra (anche senza punteggio finale), "lost" se perdente/sbagliato o croce rossa, oppure "pending" se non ancora giocata senza spunta verde
+- reason: breve motivo (es. "2-1 finale · Presa", "Spunta verde", "0-0 · Persa", "In attesa")
 Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         const payload = {
@@ -2547,13 +2551,26 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         }
       }
 
-      batch[repKey] = null;
+      const remainingMissing = missingList.slice(swapCount);
+      const remainingExtra = extraList.slice(swapCount);
+
+      if (remainingMissing.length === 0 && remainingExtra.length === 0) {
+        batch[repKey] = null;
+      } else {
+        batch[repKey] = {
+          ...rep,
+          mismatches: [],
+          missingFromReceipt: remainingMissing,
+          unmatched: remainingExtra
+        };
+      }
+
       await saveCurrentWeekToCloud(true);
       render();
       if (changes > 0) {
         showToast(`Schedina ${ticketType} allineata (${changes} aggiornat${changes === 1 ? 'a' : 'e'})!`, "success");
       } else {
-        showToast(`Schedina ${ticketType} già allineata.`, "info");
+        showToast(`Schedina ${ticketType} verificata: controlla eventuali righe residue.`, "info");
       }
     };
 
@@ -2914,7 +2931,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.8 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v3.0 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -3338,7 +3355,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-xs text-gray-400">Release v2.8 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-xs text-gray-400">Release v3.0 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3670,7 +3687,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       <input type="number" step="0.01" min="${minQ.toFixed(2)}" value="${Number(pk.quota).toFixed(2)}"
                         title="Modifica quota al volo (ricalcola schedine)"
                         onchange="updateDraftPickQuota('${pk.id}', this.value)"
-                        class="w-16 bg-transparent text-[#FF6B7D] font-black text-sm text-right focus:outline-none" />
+                        class="w-20 bg-transparent text-[#FF6B7D] font-black text-sm text-right focus:outline-none" />
                     </div>
                   ` : `
                     <div class="px-2.5 py-1.5 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] font-black text-sm">
@@ -4067,7 +4084,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     <input type="number" step="0.01" min="1.01" value="${Number(pk.quota).toFixed(2)}"
                       ${isTicketClosed || isDraftView || !adminMode ? 'disabled' : ''}
                       onchange="updatePickFinalQuota('${pk.id}', this.value)"
-                      class="w-16 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#FF6B7D]'} font-black text-xs text-right focus:outline-none focus:border-[#C8102E] disabled:opacity-60" />
+                      class="w-20 px-1.5 py-0.5 rounded-lg bg-[#121212] border ${mm ? 'border-amber-400 text-amber-300' : 'border-white/15 text-[#FF6B7D]'} font-black text-xs text-right focus:outline-none focus:border-[#C8102E] disabled:opacity-60" />
                   </div>
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
@@ -4302,10 +4319,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         ` : ''}
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-          <section class="rounded-3xl bg-[#1C1517] border ${closedA ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+          <section class="rounded-3xl bg-[#1C1517] border ${closedA ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl min-w-0">
             <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
               <div class="flex items-center justify-between gap-2">
-                <div>
+                <div class="min-w-0">
                   <div class="text-xs font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
                   <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
                 </div>
@@ -4351,10 +4368,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
           </section>
 
-          <section class="rounded-3xl bg-[#1C1517] border ${closedB ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+          <section class="rounded-3xl bg-[#1C1517] border ${closedB ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl min-w-0">
             <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
               <div class="flex items-center justify-between gap-2">
-                <div>
+                <div class="min-w-0">
                   <div class="text-xs font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
                   <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
                 </div>
