@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.3 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.4 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,6 +32,9 @@
     }
   </script>
   <style>
+    html {
+      font-size: 17px;
+    }
     body {
       background-color: #121212;
       color: #f3f4f6;
@@ -39,7 +42,7 @@
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior-y: none;
     }
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #121212; }
     ::-webkit-scrollbar-thumb { background: #3a2328; border-radius: 9999px; }
 
@@ -65,7 +68,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .safe-bottom {
-      padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+      padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
     }
 
     @keyframes pulseSoft {
@@ -178,29 +181,29 @@
 </head>
 <body class="min-h-screen bg-[#121212] text-gray-100 antialiased selection:bg-[#C8102E] selection:text-white">
 
-  <div id="app" class="max-w-5xl mx-auto min-h-screen flex flex-col relative pb-24">
+  <div id="app" class="w-full max-w-none min-h-screen flex flex-col relative pb-24">
 
-    <!-- Header Sticky Rossonero -->
-    <header class="sticky top-0 z-30 bg-[#181314]/95 backdrop-blur-md border-b border-[#C8102E]/35 px-4 py-3 flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#E01938] to-[#96091F] btn-keep-white flex items-center justify-center font-black text-lg shadow-lg shadow-[#C8102E]/35 shrink-0">
+    <!-- Header Sticky Rossonero Full Width -->
+    <header class="sticky top-0 z-30 w-full bg-[#181314]/95 backdrop-blur-md border-b border-[#C8102E]/35 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#E01938] to-[#96091F] btn-keep-white flex items-center justify-center font-black text-xl shadow-lg shadow-[#C8102E]/35 shrink-0">
           B
         </div>
         <div class="min-w-0">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.3</span>
-            <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
-              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="font-black tracking-tight text-xl leading-none text-white">BOLLETTONE</h1>
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.4</span>
+            <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
             </span>
           </div>
-          <p id="header-week-label" class="text-[11px] text-gray-400 mt-0.5 font-medium truncate">Settimana Corrente</p>
+          <p id="header-week-label" class="text-xs text-gray-400 mt-0.5 font-medium truncate">Settimana Corrente</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button id="auth-header-btn" onclick="openAuthModal()" class="px-2.5 py-2 rounded-xl bg-[#22191B] hover:bg-[#312226] border border-[#C8102E]/35 text-[11px] font-extrabold btn-keep-white transition active:scale-95 shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="auth-header-btn" onclick="openAuthModal()" class="px-3 py-2 rounded-xl bg-[#22191B] hover:bg-[#312226] border border-[#C8102E]/35 text-xs font-extrabold btn-keep-white transition active:scale-95 shrink-0">
           Accedi
         </button>
 
@@ -213,57 +216,57 @@
       </div>
     </header>
 
-    <!-- Area Contenuto Dinamico -->
-    <main id="main-content" class="flex-1 px-4 pt-4 space-y-5"></main>
+    <!-- Area Contenuto Dinamico Full Width -->
+    <main id="main-content" class="flex-1 w-full px-4 sm:px-6 pt-4 space-y-5"></main>
 
-    <!-- Barra di Navigazione Fissa in Basso (5 tab: GIOCA, SCHEDINE, PUNTATE, CASSA, STATS) -->
-    <nav class="fixed bottom-0 left-0 right-0 z-30 bg-[#181314]/95 backdrop-blur-lg border-t border-[#C8102E]/35 safe-bottom">
-      <div class="max-w-5xl mx-auto grid grid-cols-5 px-1 pt-1.5">
+    <!-- Barra di Navigazione Fissa in Basso Full Width -->
+    <nav class="fixed bottom-0 left-0 right-0 z-30 w-full bg-[#181314]/95 backdrop-blur-lg border-t border-[#C8102E]/35 safe-bottom">
+      <div class="w-full grid grid-cols-5 px-2 sm:px-6 pt-1.5">
         <button onclick="switchTab('gioca')" id="nav-gioca" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
           </svg>
-          <span class="text-[10px] font-bold tracking-wide">GIOCA</span>
+          <span class="text-[11px] font-bold tracking-wide">GIOCA</span>
         </button>
 
         <button onclick="switchTab('schedine')" id="nav-schedine" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition relative">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
           </svg>
-          <span class="text-[10px] font-bold tracking-wide">SCHEDINE</span>
-          <span id="badge-schedine" class="hidden absolute top-1 right-3 w-2 h-2 rounded-full bg-[#22C55E]"></span>
+          <span class="text-[11px] font-bold tracking-wide">SCHEDINE</span>
+          <span id="badge-schedine" class="hidden absolute top-1 right-4 w-2 h-2 rounded-full bg-[#22C55E]"></span>
         </button>
 
         <button onclick="switchTab('puntate')" id="nav-puntate" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition relative">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <span class="text-[10px] font-bold tracking-wide">PUNTATE</span>
+          <span class="text-[11px] font-bold tracking-wide">PUNTATE</span>
         </button>
 
         <button onclick="switchTab('cassa')" id="nav-cassa" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
-          <span class="text-[10px] font-bold tracking-wide">CASSA</span>
+          <span class="text-[11px] font-bold tracking-wide">CASSA</span>
         </button>
 
         <button onclick="switchTab('statistiche')" id="nav-statistiche" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
           </svg>
-          <span class="text-[10px] font-bold tracking-wide">STATS</span>
+          <span class="text-[11px] font-bold tracking-wide">STATS</span>
         </button>
       </div>
     </nav>
   </div>
 
   <!-- Notifiche Toast -->
-  <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none space-y-2"></div>
+  <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl pointer-events-none space-y-2"></div>
 
   <!-- Modale Riutilizzabile -->
   <div id="modal-root" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div id="modal-box" class="bg-[#1C1517] border border-[#C8102E]/35 w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"></div>
+    <div id="modal-box" class="bg-[#1C1517] border border-[#C8102E]/35 w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl"></div>
   </div>
 
   <script type="module">
@@ -2290,7 +2293,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Quota aggiornata a ${pk.quota.toFixed(2)} (schedina invariata)`, "success");
     };
 
-    // Modale Admin per modificare/sostituire manualmente una partita su una puntata già giocata
     window.openEditPlayedPickModal = function(pickId) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
@@ -2368,7 +2370,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       showToast(`Partita aggiornata a "${newPartita}" nella stessa posizione!`, "success");
     };
 
-    // Sostituisce una partita mancante sul cedolino con una partita rilevata sul cedolino
     window.replacePickWithReceiptItem = async function(pickId, newPartita, newMercato, newQuota) {
       if (!isAdmin()) return;
       const batch = getActiveSchedineBatch();
@@ -2773,7 +2774,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.3 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.4 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -3197,7 +3198,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v2.3 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-[11px] text-gray-400">Release v2.4 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3813,7 +3814,6 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const matchedCount = Array.isArray(report.matched) ? report.matched.length : 0;
         const hasAnyIssue = hasMismatches || hasUnmatched || hasMissing;
 
-        // Se c'è una sola partita assente e una sola partita extra sul cedolino, proponi la sostituzione diretta con 1 clic
         const singleSwapCandidate = (hasMissing && hasUnmatched && report.missingFromReceipt.length === 1 && report.unmatched.length === 1)
           ? { oldPick: report.missingFromReceipt[0], newReceiptItem: report.unmatched[0] }
           : null;
@@ -4020,7 +4020,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const receiptsHtml = receipts.length === 0
         ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai verificare partite/quote e scalare il costo in cassa.</div>`
-        : `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+        : `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
             ${receipts.map(rc => {
               const imgSrc = rc.url || rc.dataUrl;
               const isCheckingThis = state.checkingReceiptId === rc.id;
@@ -4128,120 +4128,122 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           </section>
         ` : ''}
 
-        <section class="rounded-3xl bg-[#1C1517] border ${closedA ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
-          <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
-                <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <section class="rounded-3xl bg-[#1C1517] border ${closedA ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+            <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
+                  <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
+                </div>
+                ${aBadge}
               </div>
-              ${aBadge}
-            </div>
 
-            <div class="grid grid-cols-2 gap-2.5">
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                <div class="text-[10px] font-semibold text-[#FF8A98]">Puntata</div>
-                <div class="font-black text-base text-white">5,00 €</div>
+              <div class="grid grid-cols-2 gap-2.5">
+                <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
+                  <div class="text-[10px] font-semibold text-[#FF8A98]">Puntata</div>
+                  <div class="font-black text-base text-white">5,00 €</div>
+                </div>
+                <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
+                  <div class="text-[10px] font-semibold text-[#FF8A98]">Vincita potenziale</div>
+                  <div class="font-black text-base text-white">${formatEuro(calc.ticketA.potentialWin)}</div>
+                </div>
               </div>
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                <div class="text-[10px] font-semibold text-[#FF8A98]">Vincita potenziale</div>
-                <div class="font-black text-base text-white">${formatEuro(calc.ticketA.potentialWin)}</div>
-              </div>
-            </div>
 
-            ${!isDraftView && adminMode ? `
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="triggerResultScreenshotUpload('A')" ${closedA || state.loadingResultAI === 'A' ? 'disabled' : ''}
-                  class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
-                  <span>${state.loadingResultAI === 'A' ? '⏳ Lettura...' : '🤖 Verifica AI A'}</span>
-                </button>
-                ${!closedA ? `
-                  <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'A')"
-                    class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
-                    <span>🏁 Chiudi A</span>
+              ${!isDraftView && adminMode ? `
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="triggerResultScreenshotUpload('A')" ${closedA || state.loadingResultAI === 'A' ? 'disabled' : ''}
+                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    <span>${state.loadingResultAI === 'A' ? '⏳ Lettura...' : '🤖 Verifica AI A'}</span>
                   </button>
-                ` : `
-                  <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
-                    ✅ Chiusa in Puntate
-                  </div>
-                `}
-              </div>
-            ` : ''}
-          </div>
-
-          ${renderAIResultPreviewBox('A')}
-
-          <div>
-            ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A', !!closedA)).join('')}
-          </div>
-        </section>
-
-        <section class="rounded-3xl bg-[#1C1517] border ${closedB ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
-          <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
-            <div class="flex items-center justify-between gap-2">
-              <div>
-                <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
-                <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
-              </div>
-              ${bBadge}
+                  ${!closedA ? `
+                    <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'A')"
+                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                      <span>🏁 Chiudi A</span>
+                    </button>
+                  ` : `
+                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
+                      ✅ Chiusa in Puntate
+                    </div>
+                  `}
+                </div>
+              ` : ''}
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
-                <div class="font-black text-sm text-white">5,00 €</div>
-              </div>
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                <div class="text-[10px] font-semibold text-amber-400">Min (5/6)</div>
-                <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.minWin)}</div>
-              </div>
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                <div class="text-[10px] font-semibold text-[#4ADE80]">Max (6/6)</div>
-                <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.maxWin)}</div>
-              </div>
-            </div>
+            ${renderAIResultPreviewBox('A')}
 
-            ${!isDraftView && adminMode ? `
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="triggerResultScreenshotUpload('B')" ${closedB || state.loadingResultAI === 'B' ? 'disabled' : ''}
-                  class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
-                  <span>${state.loadingResultAI === 'B' ? '⏳ Lettura...' : '🤖 Verifica AI B'}</span>
-                </button>
-                ${!closedB ? `
-                  <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'B')"
-                    class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
-                    <span>🏁 Chiudi B</span>
+            <div>
+              ${calc.ticketA.picks.map(pk => renderTicketRow(pk, 'A', !!closedA)).join('')}
+            </div>
+          </section>
+
+          <section class="rounded-3xl bg-[#1C1517] border ${closedB ? 'border-[#22C55E]/40' : 'border-[#C8102E]/35'} overflow-hidden shadow-xl">
+            <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div>
+                  <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
+                  <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
+                </div>
+                ${bBadge}
+              </div>
+
+              <div class="grid grid-cols-3 gap-2">
+                <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
+                  <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
+                  <div class="font-black text-sm text-white">5,00 €</div>
+                </div>
+                <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
+                  <div class="text-[10px] font-semibold text-amber-400">Min (5/6)</div>
+                  <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.minWin)}</div>
+                </div>
+                <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
+                  <div class="text-[10px] font-semibold text-[#4ADE80]">Max (6/6)</div>
+                  <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.maxWin)}</div>
+                </div>
+              </div>
+
+              ${!isDraftView && adminMode ? `
+                <div class="grid grid-cols-2 gap-2">
+                  <button type="button" onclick="triggerResultScreenshotUpload('B')" ${closedB || state.loadingResultAI === 'B' ? 'disabled' : ''}
+                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    <span>${state.loadingResultAI === 'B' ? '⏳ Lettura...' : '🤖 Verifica AI B'}</span>
                   </button>
-                ` : `
-                  <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
-                    ✅ Chiusa in Puntate
-                  </div>
-                `}
-              </div>
-            ` : ''}
+                  ${!closedB ? `
+                    <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'B')"
+                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                      <span>🏁 Chiudi B</span>
+                    </button>
+                  ` : `
+                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
+                      ✅ Chiusa in Puntate
+                    </div>
+                  `}
+                </div>
+              ` : ''}
 
-            <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-[11px] text-gray-400 space-y-1">
-              <div class="flex justify-between">
-                <span>6 su 6 (0,50 € × 1 col.):</span>
-                <span class="font-bold text-white">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>5 su 6 (0,75 € × 6 col.):</span>
-                <span class="font-bold text-white">4,50 € → da ${formatEuro(calc.ticketB.minWin)}</span>
-              </div>
-              <div class="flex justify-between pt-1 border-t border-white/10">
-                <span>Stato sistema:</span>
-                <span class="font-bold text-[#FF8A98]">${escapeHtml(calc.ticketB.hitsLabel)}</span>
+              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-[11px] text-gray-400 space-y-1">
+                <div class="flex justify-between">
+                  <span>6 su 6 (0,50 € × 1 col.):</span>
+                  <span class="font-bold text-white">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span>5 su 6 (0,75 € × 6 col.):</span>
+                  <span class="font-bold text-white">4,50 € → da ${formatEuro(calc.ticketB.minWin)}</span>
+                </div>
+                <div class="flex justify-between pt-1 border-t border-white/10">
+                  <span>Stato sistema:</span>
+                  <span class="font-bold text-[#FF8A98]">${escapeHtml(calc.ticketB.hitsLabel)}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          ${renderAIResultPreviewBox('B')}
+            ${renderAIResultPreviewBox('B')}
 
-          <div>
-            ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B', !!closedB)).join('')}
-          </div>
-        </section>
+            <div>
+              ${calc.ticketB.picks.map(pk => renderTicketRow(pk, 'B', !!closedB)).join('')}
+            </div>
+          </section>
+        </div>
       `;
     }
 
