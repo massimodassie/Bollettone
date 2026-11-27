@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.1 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.2 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -129,10 +129,19 @@
       #app .text-gray-400,
       #modal-box .text-gray-300,
       #modal-box .text-gray-400 {
-        color: #4b5563 !important;
+        color: #374151 !important;
       }
       #app .text-gray-500 {
-        color: #6b7280 !important;
+        color: #4b5563 !important;
+      }
+      #app .text-amber-200,
+      #app .text-amber-300 {
+        color: #92400e !important;
+      }
+      #app .text-red-300,
+      #app .text-\[\#FF6B7D\],
+      #app .text-\[\#FF8A98\] {
+        color: #9f1239 !important;
       }
       .border-white\/10,
       .border-white\/5 {
@@ -154,7 +163,7 @@
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 flex-wrap">
             <h1 class="font-black tracking-tight text-lg leading-none text-white">BOLLETTONE</h1>
-            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.1</span>
+            <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.2</span>
             <span id="sync-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
@@ -372,6 +381,7 @@
       loadingResultAI: null,
       uploadingReceipts: false,
       checkingReceiptId: null,
+      checkingAllReceipts: false,
       aiPreviewMatches: null,
       aiResultPreview: null,
       selectedPlayerId: getSavedPlayerPref() || 'p1',
@@ -1256,110 +1266,151 @@ Restituisci esclusivamente un JSON valido conforme allo schema.`;
       }
     }
 
-    // Verifica sia corrispondenza partite (trovate, extra sul cedolino, mancanti sul cedolino) sia quote
-    async function verifyReceiptAgainstPicks(base64Data, batchPicks = []) {
-      if (!base64Data) return null;
-      try {
-        const prompt = `Analizza questo cedolino/ricevuta di scommesse Sisal.
+    async function extractItemsFromReceiptBase64(base64Data) {
+      if (!base64Data) return [];
+      const prompt = `Analizza questo cedolino/ricevuta di scommesse Sisal.
 Estrai ogni evento/partita giocata sul cedolino con:
 - partita: "Squadra Casa - Squadra Ospite"
 - mercatoEsito: mercato e pronostico visibili sul cedolino
 - quota: quota numerica decimale con punto (es. 1.75)
 Restituisci esclusivamente JSON valido conforme allo schema.`;
 
-        const payload = {
-          contents: [{
-            role: "user",
-            parts: [
-              { text: prompt },
-              { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
-            ]
-          }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "OBJECT",
-              properties: {
+      const payload = {
+        contents: [{
+          role: "user",
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Data } }
+          ]
+        }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              items: {
+                type: "ARRAY",
                 items: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      partita: { type: "STRING" },
-                      mercatoEsito: { type: "STRING" },
-                      quota: { type: "NUMBER" }
-                    },
-                    required: ["partita", "quota"]
-                  }
+                  type: "OBJECT",
+                  properties: {
+                    partita: { type: "STRING" },
+                    mercatoEsito: { type: "STRING" },
+                    quota: { type: "NUMBER" }
+                  },
+                  required: ["partita", "quota"]
                 }
-              },
-              required: ["items"]
+              }
+            },
+            required: ["items"]
+          }
+        }
+      };
+
+      const result = await callGeminiWithFallback(payload);
+      const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) return [];
+      const parsed = JSON.parse(text);
+      return Array.isArray(parsed.items) ? parsed.items : [];
+    }
+
+    function buildCheckReportFromExtractedItems(items = [], batchPicks = [], receiptsCount = 1) {
+      if (!Array.isArray(items) || items.length === 0) return null;
+      const picks = Array.isArray(batchPicks) ? batchPicks : [];
+      const matched = [];
+      const mismatches = [];
+      const unmatched = [];
+      const matchedPickIds = new Set();
+
+      items.forEach(item => {
+        const foundPick = findBestMatchingPick(item.partita, picks);
+        const rQuota = Number(Number(item.quota).toFixed(2));
+        if (!foundPick) {
+          unmatched.push({
+            partita: item.partita,
+            mercatoEsito: item.mercatoEsito || '',
+            receiptQuota: rQuota
+          });
+          return;
+        }
+
+        matchedPickIds.add(foundPick.id);
+        const appQuota = Number(Number(foundPick.quota).toFixed(2));
+        if (Math.abs(appQuota - rQuota) > 0.009) {
+          mismatches.push({
+            pickId: foundPick.id,
+            partita: foundPick.partita,
+            playerName: getPlayerName(foundPick.playerId),
+            appQuota,
+            receiptQuota: rQuota
+          });
+        } else {
+          matched.push({
+            pickId: foundPick.id,
+            partita: foundPick.partita,
+            quota: rQuota
+          });
+        }
+      });
+
+      const missingFromReceipt = picks
+        .filter(pk => !matchedPickIds.has(pk.id))
+        .map(pk => ({
+          pickId: pk.id,
+          partita: pk.partita,
+          playerName: getPlayerName(pk.playerId),
+          quota: Number(Number(pk.quota).toFixed(2))
+        }));
+
+      return {
+        checkedAt: Date.now(),
+        receiptsChecked: receiptsCount,
+        totalExtracted: items.length,
+        matched,
+        mismatches,
+        unmatched,
+        missingFromReceipt
+      };
+    }
+
+    async function getBase64FromReceiptObj(rc) {
+      if (!rc) return '';
+      if (rc.dataUrl) {
+        return rc.dataUrl.includes(',') ? rc.dataUrl.split(',')[1] : rc.dataUrl;
+      }
+      if (rc.url) {
+        const resp = await fetch(rc.url);
+        const blob = await resp.blob();
+        return await fileToBase64(blob);
+      }
+      return '';
+    }
+
+    // Verifica cumulativa su tutti i cedolini della puntata (con eventuale nuovo base64 appena caricato)
+    async function verifyReceiptAgainstPicks(base64DataOrNull, batchPicks = [], batchReceipts = [], extraBase64 = '') {
+      try {
+        const allItems = [];
+        let receiptsCount = 0;
+
+        for (const rc of (Array.isArray(batchReceipts) ? batchReceipts : [])) {
+          try {
+            const b64 = await getBase64FromReceiptObj(rc);
+            if (b64) {
+              receiptsCount++;
+              const extracted = await extractItemsFromReceiptBase64(b64);
+              if (extracted.length > 0) allItems.push(...extracted);
             }
-          }
-        };
+          } catch (_) {}
+        }
 
-        const result = await callGeminiWithFallback(payload);
-        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) return null;
+        const directB64 = extraBase64 || base64DataOrNull || '';
+        if (directB64 && receiptsCount === 0) {
+          receiptsCount = 1;
+          const extracted = await extractItemsFromReceiptBase64(directB64);
+          if (extracted.length > 0) allItems.push(...extracted);
+        }
 
-        const parsed = JSON.parse(text);
-        const items = Array.isArray(parsed.items) ? parsed.items : [];
-        if (items.length === 0) return null;
-
-        const picks = batchPicks.length > 0 ? batchPicks : (getActiveSchedineBatch().picks || []);
-        const matched = [];
-        const mismatches = [];
-        const unmatched = [];
-        const matchedPickIds = new Set();
-
-        items.forEach(item => {
-          const foundPick = findBestMatchingPick(item.partita, picks);
-          const rQuota = Number(Number(item.quota).toFixed(2));
-          if (!foundPick) {
-            unmatched.push({
-              partita: item.partita,
-              mercatoEsito: item.mercatoEsito || '',
-              receiptQuota: rQuota
-            });
-            return;
-          }
-
-          matchedPickIds.add(foundPick.id);
-          const appQuota = Number(Number(foundPick.quota).toFixed(2));
-          if (Math.abs(appQuota - rQuota) > 0.009) {
-            mismatches.push({
-              pickId: foundPick.id,
-              partita: foundPick.partita,
-              playerName: getPlayerName(foundPick.playerId),
-              appQuota,
-              receiptQuota: rQuota
-            });
-          } else {
-            matched.push({
-              pickId: foundPick.id,
-              partita: foundPick.partita,
-              quota: rQuota
-            });
-          }
-        });
-
-        const missingFromReceipt = picks
-          .filter(pk => !matchedPickIds.has(pk.id))
-          .map(pk => ({
-            pickId: pk.id,
-            partita: pk.partita,
-            playerName: getPlayerName(pk.playerId),
-            quota: Number(Number(pk.quota).toFixed(2))
-          }));
-
-        return {
-          checkedAt: Date.now(),
-          totalExtracted: items.length,
-          matched,
-          mismatches,
-          unmatched,
-          missingFromReceipt
-        };
+        if (allItems.length === 0) return null;
+        return buildCheckReportFromExtractedItems(allItems, batchPicks, receiptsCount);
       } catch (err) {
         console.warn("Errore verifica quote cedolino:", err);
         return null;
@@ -2367,14 +2418,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
 
       let uploadedCount = 0;
-      let lastBase64 = '';
 
       try {
         for (const file of files) {
           try {
             const compressedDataUrl = await compressReceiptImage(file, 900, 0.68);
-            const base64Only = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
-            lastBase64 = base64Only;
             const receiptId = 'rc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
             const path = `artifacts/${appId}/receipts/${receiptId}.jpg`;
 
@@ -2413,10 +2461,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         await saveCurrentWeekToCloud(true);
 
-        if (lastBase64 && runtimeGeminiKey) {
+        if (runtimeGeminiKey && batch.receipts.length > 0) {
           try {
-            const aiPromise = verifyReceiptAgainstPicks(lastBase64, batch.picks);
-            const aiTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 8000));
+            const aiPromise = verifyReceiptAgainstPicks(null, batch.picks, batch.receipts);
+            const aiTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 12000));
             const report = await Promise.race([aiPromise, aiTimeout]);
             if (report && report.totalExtracted > 0) {
               batch.receiptCheckReport = report;
@@ -2440,6 +2488,45 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       }
     };
 
+    window.recheckAllBatchReceipts = async function() {
+      if (!isAdmin()) {
+        showToast("Solo l'Admin può verificare i cedolini.", "warning");
+        return;
+      }
+      const batch = getActiveSchedineBatch();
+      if (!batch || batch.isDraft) return;
+      const rcs = Array.isArray(batch.receipts) ? batch.receipts : [];
+      if (rcs.length === 0) {
+        showToast("Nessun cedolino caricato su questa puntata.", "warning");
+        return;
+      }
+
+      ensureBatchCompositionFrozen(batch, true);
+      state.checkingAllReceipts = true;
+      render();
+
+      try {
+        const report = await verifyReceiptAgainstPicks(null, batch.picks, rcs);
+        if (report) {
+          batch.receiptCheckReport = report;
+          await saveCurrentWeekToCloud(true);
+          if (report.mismatches.length > 0 || (report.missingFromReceipt && report.missingFromReceipt.length > 0)) {
+            showToast("Verifica completata: controlla partite e quote segnalate.", "warning");
+          } else {
+            showToast("Verifica completata su tutti i cedolini: tutto allineato!", "success");
+          }
+        } else {
+          showToast("Impossibile leggere le quote dai cedolini.", "warning");
+        }
+      } catch (err) {
+        console.error("Errore verifica cumulativa cedolini:", err);
+        showToast("Errore durante la verifica dei cedolini.", "error");
+      } finally {
+        state.checkingAllReceipts = false;
+        render();
+      }
+    };
+
     window.recheckExistingReceipt = async function(receiptId) {
       if (!isAdmin()) {
         showToast("Solo l'Admin può verificare i cedolini.", "warning");
@@ -2456,16 +2543,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       render();
 
       try {
-        let base64Only = '';
-        if (rc.dataUrl) {
-          base64Only = rc.dataUrl.includes(',') ? rc.dataUrl.split(',')[1] : rc.dataUrl;
-        } else if (rc.url) {
-          const resp = await fetch(rc.url);
-          const blob = await resp.blob();
-          base64Only = await fileToBase64(blob);
-        }
-
-        const report = await verifyReceiptAgainstPicks(base64Only, batch.picks);
+        const report = await verifyReceiptAgainstPicks(null, batch.picks, batch.receipts || [rc]);
         if (report) {
           batch.receiptCheckReport = report;
           await saveCurrentWeekToCloud(true);
@@ -2567,7 +2645,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.1 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.2 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2991,7 +3069,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v2.1 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-[11px] text-gray-400">Release v2.2 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3612,8 +3690,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="flex items-center justify-between gap-2">
               <span class="text-xs font-extrabold ${hasAnyIssue ? 'text-amber-300' : 'text-[#4ADE80]'}">
                 ${!hasAnyIssue
-                  ? `✅ Check Partite & Quote: tutto allineato (${matchedCount} OK)`
-                  : `⚠️ Check Partite & Quote: ${matchedCount} OK · ${hasMismatches ? report.mismatches.length + ' quote diverse' : ''} ${hasUnmatched ? '· ' + report.unmatched.length + ' extra su cedolino' : ''} ${hasMissing ? '· ' + report.missingFromReceipt.length + ' assenti su cedolino' : ''}`}
+                  ? `✅ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): tutto allineato (${matchedCount} OK)`
+                  : `⚠️ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): ${matchedCount} OK${hasMismatches ? ' · ' + report.mismatches.length + ' quote diverse' : ''}${hasUnmatched ? ' · ' + report.unmatched.length + ' extra su cedolino' : ''}${hasMissing ? ' · ' + report.missingFromReceipt.length + ' assenti sui cedolini' : ''}`}
               </span>
               <button type="button" onclick="dismissReceiptReport()" class="text-[11px] text-gray-400 hover:text-white">✕</button>
             </div>
@@ -3648,7 +3726,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
             ${hasMissing ? `
               <div class="p-2 rounded-xl bg-black/25 text-[11px] text-red-300 space-y-0.5">
-                <div class="font-bold">🚫 Partite nella puntata ma non presenti su questo cedolino:</div>
+                <div class="font-bold">🚫 Partite nella puntata ma assenti su tutti i cedolini caricati:</div>
                 <div>${report.missingFromReceipt.map(m => `${escapeHtml(m.partita)} (${escapeHtml(m.playerName)} @${m.quota.toFixed(2)})`).join(' · ')}</div>
               </div>
             ` : ''}
@@ -3801,7 +3879,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   </button>
                   <div class="p-1.5 flex items-center justify-between gap-1">
                     ${adminMode ? `
-                      <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis ? 'disabled' : ''}
+                      <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis || state.checkingAllReceipts ? 'disabled' : ''}
                         class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-[10px] transition">
                         ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
                       </button>
@@ -3857,18 +3935,26 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             </div>
 
             <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div>
                   <div class="text-xs font-bold text-white">Cedolini Sisal, Check Partite/Quote & Scarico Cassa</div>
-                  <div class="text-[10px] text-gray-400">Verifica partite e quote sul cedolino e scala il costo in cassa.</div>
+                  <div class="text-[10px] text-gray-400">Verifica partite e quote su tutti i cedolini e scala il costo in cassa.</div>
                 </div>
-                ${canPlay ? `
-                  <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
-                  <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
-                    class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition">
-                    ${state.uploadingReceipts ? 'Caricamento...' : '+ Carica Cedolino'}
-                  </button>
-                ` : ''}
+                <div class="flex items-center gap-1.5">
+                  ${adminMode && receipts.length > 1 ? `
+                    <button type="button" onclick="recheckAllBatchReceipts()" ${state.checkingAllReceipts || state.uploadingReceipts ? 'disabled' : ''}
+                      class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-[#FF8A98] font-bold text-[10px] shrink-0 transition">
+                      ${state.checkingAllReceipts ? 'Verifica...' : '🔍 Check Tutti'}
+                    </button>
+                  ` : ''}
+                  ${canPlay ? `
+                    <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
+                    <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
+                      class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-50 text-white font-bold text-[11px] shrink-0 transition">
+                      ${state.uploadingReceipts ? 'Caricamento...' : '+ Carica Cedolino'}
+                    </button>
+                  ` : ''}
+                </div>
               </div>
               ${receiptsHtml}
 
