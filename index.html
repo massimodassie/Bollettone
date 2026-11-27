@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>BOLLETTONE v2.4 — Scommesse Rossonere</title>
+  <title>BOLLETTONE v2.5 — Scommesse Rossonere</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,7 +33,7 @@
   </script>
   <style>
     html {
-      font-size: 17px;
+      font-size: 19px;
     }
     body {
       background-color: #121212;
@@ -68,7 +68,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .safe-bottom {
-      padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+      padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
     }
 
     @keyframes pulseSoft {
@@ -192,8 +192,8 @@
         <div class="min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
             <h1 class="font-black tracking-tight text-xl leading-none text-white">BOLLETTONE</h1>
-            <span class="px-2 py-0.5 rounded-md text-[10px] font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.4</span>
-            <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
+            <span class="px-2 py-0.5 rounded-md text-xs font-black bg-[#C8102E]/20 text-[#FF6B7D] border border-[#C8102E]/45 shrink-0">v2.5</span>
+            <span id="sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/5 text-gray-400 border border-white/10 shrink-0">
               <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse-soft"></span>
               Sync...
             </span>
@@ -226,14 +226,14 @@
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
           </svg>
-          <span class="text-[11px] font-bold tracking-wide">GIOCA</span>
+          <span class="text-xs font-bold tracking-wide">GIOCA</span>
         </button>
 
         <button onclick="switchTab('schedine')" id="nav-schedine" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition relative">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
           </svg>
-          <span class="text-[11px] font-bold tracking-wide">SCHEDINE</span>
+          <span class="text-xs font-bold tracking-wide">SCHEDINE</span>
           <span id="badge-schedine" class="hidden absolute top-1 right-4 w-2 h-2 rounded-full bg-[#22C55E]"></span>
         </button>
 
@@ -241,21 +241,21 @@
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <span class="text-[11px] font-bold tracking-wide">PUNTATE</span>
+          <span class="text-xs font-bold tracking-wide">PUNTATE</span>
         </button>
 
         <button onclick="switchTab('cassa')" id="nav-cassa" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
           </svg>
-          <span class="text-[11px] font-bold tracking-wide">CASSA</span>
+          <span class="text-xs font-bold tracking-wide">CASSA</span>
         </button>
 
         <button onclick="switchTab('statistiche')" id="nav-statistiche" class="nav-btn flex flex-col items-center justify-center py-1.5 rounded-xl transition">
           <svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
           </svg>
-          <span class="text-[11px] font-bold tracking-wide">STATS</span>
+          <span class="text-xs font-bold tracking-wide">STATS</span>
         </button>
       </div>
     </nav>
@@ -768,7 +768,7 @@
           <label class="flex items-center justify-between p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
             <div>
               <div class="text-xs font-bold text-white">Ricorda accesso</div>
-              <div class="text-[11px] text-gray-400">Accedi automaticamente alle prossime aperture su questo dispositivo</div>
+              <div class="text-xs text-gray-400">Accedi automaticamente alle prossime aperture su questo dispositivo</div>
             </div>
             <input id="login-remember-checkbox" type="checkbox" ${savedCreds ? 'checked' : ''} class="w-4 h-4 accent-[#C8102E]" />
           </label>
@@ -1080,7 +1080,7 @@
         dot = 'bg-red-500';
         txt = 'text-red-500';
       }
-      badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${dot}"></span><span class="${txt}">${label}</span>`;
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full ${dot}"></span><span class="${txt}">${label}</span>`;
     }
 
     function formatSingleDayESPN(offsetDays = 0) {
@@ -2462,7 +2462,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo totale da scalare dalla Cassa (€)</label>
             <input id="batch-cash-cost-input" type="number" step="0.50" min="0.50" value="${Number(defaultAmt).toFixed(2)}" required
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#FF6B7D] font-black text-xl focus:outline-none focus:border-[#C8102E]" />
-            <p class="text-[11px] text-gray-500 mt-1">Standard: 10,00 € (5,00 € Schedina A + 5,00 € Schedina B), ma puoi modificarlo liberamente.</p>
+            <p class="text-xs text-gray-500 mt-1">Standard: 10,00 € (5,00 € Schedina A + 5,00 € Schedina B), ma puoi modificarlo liberamente.</p>
           </div>
 
           <div class="flex gap-2">
@@ -2720,7 +2720,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-sm text-white truncate">${escapeHtml(rc.name)}</h3>
-            <p class="text-[11px] text-gray-400">${rc.url ? 'Salvato su Firebase Storage' : 'Cedolino salvato'}</p>
+            <p class="text-xs text-gray-400">${rc.url ? 'Salvato su Firebase Storage' : 'Cedolino salvato'}</p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -2774,7 +2774,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const calc = computeBatchTickets(batch);
       const cleanLabel = stripDemoText(batch.label);
       const lines = [];
-      lines.push(`⚽ *BOLLETTONE v2.4 — ${cleanLabel}*`);
+      lines.push(`⚽ *BOLLETTONE v2.5 — ${cleanLabel}*`);
       lines.push('');
       lines.push(`🎫 *SCHEDINA A (Secca 5,00 €)*`);
       lines.push(`Quota: *${calc.ticketA.quotaTot.toFixed(2)}*${calc.ticketA.applyBonus ? ' (+3% Bonus)' : ''} | Vincita: *${formatEuro(calc.ticketA.potentialWin)}*`);
@@ -2835,7 +2835,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="p-4 rounded-2xl bg-[#22C55E]/15 border border-[#22C55E]/50 text-center space-y-1">
             <div class="text-xs font-black uppercase tracking-wider text-[#4ADE80]">🎉 SCHEDINA ${ticketType} PRESA!</div>
             <div class="text-2xl font-black text-white">${formatEuro(suggested)}</div>
-            <div class="text-[11px] text-gray-300">${isA ? `Quota totale ${tObj.quotaTot.toFixed(2)} × 5,00 €` : escapeHtml(tObj.hitsLabel)}</div>
+            <div class="text-xs text-gray-300">${isA ? `Quota totale ${tObj.quotaTot.toFixed(2)} × 5,00 €` : escapeHtml(tObj.hitsLabel)}</div>
           </div>
         `
         : tObj.status === 'lost'
@@ -2843,7 +2843,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="p-4 rounded-2xl bg-[#C8102E]/20 border border-[#C8102E]/50 text-center space-y-1">
               <div class="text-xs font-black uppercase tracking-wider text-[#FF6B7D]">❌ SCHEDINA ${ticketType} PERSA</div>
               <div class="text-xl font-black text-white">0,00 €</div>
-              <div class="text-[11px] text-gray-400">${tObj.lostCount} ${tObj.lostCount === 1 ? 'errore' : 'errori'} su ${tObj.picks.length} partite</div>
+              <div class="text-xs text-gray-400">${tObj.lostCount} ${tObj.lostCount === 1 ? 'errore' : 'errori'} su ${tObj.picks.length} partite</div>
             </div>
           `
           : `
@@ -2867,7 +2867,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <label class="block text-xs font-bold text-gray-200 mb-1.5">Importo vinto (€) — conferma o rettifica manualmente</label>
             <input id="single-ticket-win-input" type="number" step="0.01" min="0" value="${suggested.toFixed(2)}"
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#4ADE80] font-black text-lg focus:outline-none focus:border-[#C8102E]" />
-            <p class="text-[11px] text-gray-500 mt-1">Confermando, questa schedina viene salvata in <strong>PUNTATE</strong> con dettaglio A/B.</p>
+            <p class="text-xs text-gray-500 mt-1">Confermando, questa schedina viene salvata in <strong>PUNTATE</strong> con dettaglio A/B.</p>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5">
@@ -2989,7 +2989,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <label class="block text-xs font-semibold text-gray-300 mb-1.5">Nuovo Saldo Reale (€)</label>
             <input id="set-balance-target" type="number" step="0.01" value="${currentBal.toFixed(2)}" required
               class="w-full px-3.5 py-3 rounded-xl bg-[#121212] border border-[#C8102E]/50 text-[#4ADE80] font-black text-xl focus:outline-none focus:border-[#C8102E]" />
-            <p class="text-[11px] text-gray-400 mt-1">Verrà registrato automaticamente un movimento di rettifica pari alla differenza.</p>
+            <p class="text-xs text-gray-400 mt-1">Verrà registrato automaticamente un movimento di rettifica pari alla differenza.</p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -3198,7 +3198,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="p-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-base text-white">Impostazioni Bollettone</h3>
-            <p class="text-[11px] text-gray-400">Release v2.4 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
+            <p class="text-xs text-gray-400">Release v2.5 Rossonera · Ruolo: <strong>${escapeHtml(state.authRole)}</strong></p>
           </div>
           <button onclick="closeModal()" class="p-2 rounded-xl bg-white/5 text-gray-400 hover:text-white">✕</button>
         </div>
@@ -3226,7 +3226,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <label class="flex items-center justify-between p-3 rounded-xl bg-[#121212] border border-white/10 cursor-pointer">
             <div>
               <div class="text-xs font-bold text-white">Bonus Multipla Sisal</div>
-              <div class="text-[11px] text-gray-400">+3% su 5 eventi, +6% su 6 eventi</div>
+              <div class="text-xs text-gray-400">+3% su 5 eventi, +6% su 6 eventi</div>
             </div>
             <input id="settings-bonus-toggle" type="checkbox" ${state.settings.bonusMultipla ? 'checked' : ''} ${adminMode ? '' : 'disabled'} class="w-5 h-5 accent-[#C8102E]" />
           </label>
@@ -3236,7 +3236,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <label for="cfg-min-quota" class="text-xs font-extrabold uppercase tracking-wider opacity-80">
                 Quota Minima Puntata
               </label>
-              <span class="text-[11px] font-bold text-[#FF6B7D]">Default: 1.40</span>
+              <span class="text-xs font-bold text-[#FF6B7D]">Default: 1.40</span>
             </div>
             <input
               id="cfg-min-quota"
@@ -3390,7 +3390,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const q = state.matchSearchQuery.trim().toLowerCase();
 
       if (list.length === 0) {
-        return `<div class="py-2.5 px-3 rounded-xl bg-[#121212] text-[11px] text-gray-500">Nessuna partita trovata nell'arco dei prossimi ${state.searchDaysAhead} giorni. Puoi scriverla a mano qui sotto.</div>`;
+        return `<div class="py-2.5 px-3 rounded-xl bg-[#121212] text-xs text-gray-500">Nessuna partita trovata nell'arco dei prossimi ${state.searchDaysAhead} giorni. Puoi scriverla a mano qui sotto.</div>`;
       }
 
       const filtered = q
@@ -3401,7 +3401,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         : list;
 
       if (filtered.length === 0) {
-        return `<div class="py-2.5 px-3 text-[11px] text-gray-500">Nessuna partita trovata per "${escapeHtml(state.matchSearchQuery)}" nei prossimi ${state.searchDaysAhead} giorni.</div>`;
+        return `<div class="py-2.5 px-3 text-xs text-gray-500">Nessuna partita trovata per "${escapeHtml(state.matchSearchQuery)}" nei prossimi ${state.searchDaysAhead} giorni.</div>`;
       }
 
       return `
@@ -3411,9 +3411,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               class="w-full text-left px-3 py-2 rounded-xl bg-[#121212] hover:bg-[#2a1c20] border border-white/5 flex items-center justify-between gap-2 transition">
               <div class="min-w-0">
                 <div class="text-xs font-semibold text-white truncate">${escapeHtml(m.partita)}</div>
-                ${m.campionato ? `<div class="text-[10px] text-gray-500 truncate">${escapeHtml(m.campionato)}</div>` : ''}
+                ${m.campionato ? `<div class="text-xs text-gray-500 truncate">${escapeHtml(m.campionato)}</div>` : ''}
               </div>
-              <span class="text-[10px] font-medium text-[#FF6B7D] shrink-0">${escapeHtml(m.dataOra || m.status)}</span>
+              <span class="text-xs font-medium text-[#FF6B7D] shrink-0">${escapeHtml(m.dataOra || m.status)}</span>
             </button>
           `).join('')}
         </div>
@@ -3447,7 +3447,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 : 'bg-[#1C1517] text-gray-300 border-white/10 hover:bg-[#261C1F] disabled:opacity-45'
             }">
             <span>${escapeHtml(p.name)}</span>
-            <span class="px-1.5 py-0.5 rounded-md text-[10px] font-black ${
+            <span class="px-1.5 py-0.5 rounded-md text-xs font-black ${
               isSel
                 ? 'bg-black/25 btn-keep-white'
                 : count >= 2 ? 'bg-[#C8102E]/25 text-[#FF6B7D]' : 'bg-white/10 text-gray-400'
@@ -3475,22 +3475,22 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <div class="p-3 rounded-xl bg-[#1C1517] border border-white/10 space-y-2">
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
-                      <div class="font-bold text-xs text-white truncate">${escapeHtml(m.partita)}</div>
-                      <div class="text-[11px] text-gray-400 truncate">${escapeHtml(m.mercato)}${m.esito ? ': ' + escapeHtml(m.esito) : ''}</div>
-                      ${m.dataOra ? `<div class="text-[10px] text-gray-500">${escapeHtml(m.dataOra)}</div>` : ''}
+                      <div class="font-bold text-sm text-white truncate">${escapeHtml(m.partita)}</div>
+                      <div class="text-xs text-gray-400 truncate">${escapeHtml(m.mercato)}${m.esito ? ': ' + escapeHtml(m.esito) : ''}</div>
+                      ${m.dataOra ? `<div class="text-xs text-gray-500">${escapeHtml(m.dataOra)}</div>` : ''}
                     </div>
                     <span class="px-2 py-1 rounded-lg font-black text-xs shrink-0 ${tooLow ? 'bg-red-500/20 text-red-400' : 'bg-[#C8102E]/25 text-[#FF6B7D]'}">
                       ${Number(m.quota).toFixed(2)}
                     </span>
                   </div>
-                  ${tooLow ? `<div class="text-[10px] text-red-400 font-semibold">⛔ Quota inferiore a ${minQ.toFixed(2)} (non consentita)</div>` : ''}
+                  ${tooLow ? `<div class="text-xs text-red-400 font-semibold">⛔ Quota inferiore a ${minQ.toFixed(2)} (non consentita)</div>` : ''}
                   <div class="flex gap-2">
                     <button type="button" onclick="confirmAIPick(${idx})" ${tooLow ? 'disabled' : ''}
-                      class="flex-1 py-2 rounded-lg bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-40 btn-keep-white font-extrabold text-[11px] transition">
+                      class="flex-1 py-2 rounded-lg bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-40 btn-keep-white font-extrabold text-xs transition">
                       ✓ Aggiungi subito (${escapeHtml(activePlayerName)})
                     </button>
                     <button type="button" onclick="loadAIPickIntoForm(${idx})"
-                      class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-[11px] transition">
+                      class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-xs transition">
                       Modifica
                     </button>
                   </div>
@@ -3516,9 +3516,9 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <div class="p-3.5 rounded-2xl bg-[#1C1517] border ${isDup ? 'border-amber-500/60' : 'border-white/10'} flex items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center flex-wrap gap-1.5 mb-1">
-                    <span class="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-bold text-gray-200">${escapeHtml(getPlayerName(pk.playerId))}</span>
-                    ${pk.campionato ? `<span class="text-[10px] text-gray-500">${escapeHtml(pk.campionato)}</span>` : ''}
-                    ${isDup ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold">⚠️ Già scelta</span>` : ''}
+                    <span class="px-2 py-0.5 rounded-md bg-white/10 text-xs font-bold text-gray-200">${escapeHtml(getPlayerName(pk.playerId))}</span>
+                    ${pk.campionato ? `<span class="text-xs text-gray-500">${escapeHtml(pk.campionato)}</span>` : ''}
+                    ${isDup ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-xs font-bold">⚠️ Già scelta</span>` : ''}
                   </div>
                   <div class="font-bold text-sm text-white truncate">${escapeHtml(pk.partita)}</div>
                   <div class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(pk.mercato)}</div>
@@ -3526,11 +3526,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <div class="flex items-center gap-2 shrink-0">
                   ${adminMode ? `
                     <div class="flex items-center gap-1 px-2 py-1 rounded-xl bg-[#121212] border border-[#C8102E]/40">
-                      <span class="text-[10px] text-gray-500 font-bold">@</span>
+                      <span class="text-xs text-gray-500 font-bold">@</span>
                       <input type="number" step="0.01" min="${minQ.toFixed(2)}" value="${Number(pk.quota).toFixed(2)}"
                         title="Modifica quota al volo (ricalcola schedine)"
                         onchange="updateDraftPickQuota('${pk.id}', this.value)"
-                        class="w-14 bg-transparent text-[#FF6B7D] font-black text-sm text-right focus:outline-none" />
+                        class="w-16 bg-transparent text-[#FF6B7D] font-black text-sm text-right focus:outline-none" />
                     </div>
                   ` : `
                     <div class="px-2.5 py-1.5 rounded-xl bg-[#C8102E]/20 text-[#FF6B7D] font-black text-sm">
@@ -3555,7 +3555,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="text-xs text-sky-900 dark:text-sky-200 font-semibold">
               👁️ Modalità <strong>Sola Lettura</strong>. Fai login per inserire o cancellare le tue puntate.
             </div>
-            <button onclick="openAuthModal()" class="px-2.5 py-1.5 rounded-xl bg-[#C8102E] btn-keep-white font-extrabold text-[11px] shrink-0">
+            <button onclick="openAuthModal()" class="px-2.5 py-1.5 rounded-xl bg-[#C8102E] btn-keep-white font-extrabold text-xs shrink-0">
               Accedi
             </button>
           </div>
@@ -3566,7 +3566,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="text-xs text-[#FF8A98] font-semibold">
               🎟️ ${batches.length} puntat${batches.length === 1 ? 'a già giocata è' : 'e già giocate sono'} protett${batches.length === 1 ? 'a' : 'e'} in <strong>SCHEDINE</strong>.
             </div>
-            <button onclick="switchTab('schedine')" class="px-2.5 py-1.5 rounded-xl bg-[#C8102E] btn-keep-white font-extrabold text-[11px] shrink-0">
+            <button onclick="switchTab('schedine')" class="px-2.5 py-1.5 rounded-xl bg-[#C8102E] btn-keep-white font-extrabold text-xs shrink-0">
               Vedi Schedine
             </button>
           </div>
@@ -3574,7 +3574,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         <div class="p-3.5 rounded-2xl bg-[#1C1517] border border-[#C8102E]/25 flex items-center justify-between gap-2">
           <div>
-            <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Nuova Giornata in Preparazione</div>
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-wider">Nuova Giornata in Preparazione</div>
             <div class="text-sm font-bold text-white mt-0.5">
               ${calcDraft.playersComplete}/${calcDraft.playersCount} completi
               <span class="text-gray-500 font-normal">(${picks.length}/${calcDraft.playersCount * 2} partite)</span>
@@ -3596,7 +3596,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">
               ${adminMode ? 'Seleziona giocatore (Admin)' : `Giocatore attivo: ${escapeHtml(activePlayerName)}`}
             </span>
-            ${adminMode ? `<button onclick="openSettingsModal()" class="text-[11px] font-semibold text-[#FF6B7D]">Modifica nomi</button>` : ''}
+            ${adminMode ? `<button onclick="openSettingsModal()" class="text-xs font-semibold text-[#FF6B7D]">Modifica nomi</button>` : ''}
           </div>
           <div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             ${playerPills}
@@ -3623,21 +3623,21 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
             <div class="flex items-center gap-3">
               <div class="h-px bg-white/10 flex-1"></div>
-              <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">oppure seleziona dal menu</span>
+              <span class="text-xs font-bold uppercase tracking-widest text-gray-500">oppure seleziona dal menu</span>
               <div class="h-px bg-white/10 flex-1"></div>
             </div>
 
             <div class="space-y-2.5 p-3 rounded-2xl bg-[#171717] border border-white/5">
               <div class="grid grid-cols-3 gap-2">
                 <div class="col-span-2">
-                  <label class="text-[11px] font-bold text-gray-400 block mb-1">1. Campionato</label>
+                  <label class="text-xs font-bold text-gray-400 block mb-1">1. Campionato</label>
                   <select onchange="onLeagueChange(this.value)"
                     class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#C8102E]">
                     ${LEAGUES.map(l => `<option value="${l.code}" ${state.selectedLeague === l.code ? 'selected' : ''}>${l.label}</option>`).join('')}
                   </select>
                 </div>
                 <div>
-                  <label class="text-[11px] font-bold text-gray-400 block mb-1">Orizzonte</label>
+                  <label class="text-xs font-bold text-gray-400 block mb-1">Orizzonte</label>
                   <select onchange="onSearchDaysChange(this.value)"
                     class="w-full px-2 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-bold focus:outline-none focus:border-[#C8102E]">
                     <option value="7" ${state.searchDaysAhead === 7 ? 'selected' : ''}>7 gg</option>
@@ -3660,7 +3660,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
             <form onsubmit="submitPickForm(event)" class="space-y-3">
               <div>
-                <label class="block text-[11px] font-semibold text-gray-400 mb-1">2. Partita (selezionata o manuale)</label>
+                <label class="block text-xs font-semibold text-gray-400 mb-1">2. Partita (selezionata o manuale)</label>
                 <input type="text" required placeholder="Es. Genoa - Milan  oppure  Vicenza - Cremonese"
                   value="${escapeHtml(state.form.partita)}"
                   oninput="updateFormField('partita', this.value)"
@@ -3669,14 +3669,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-semibold text-gray-400 mb-1">3. Tipologia Scommessa</label>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1">3. Tipologia Scommessa</label>
                   <select onchange="onMarketChange(this.value)"
                     class="w-full px-3 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-white text-xs font-semibold focus:outline-none focus:border-[#C8102E]">
                     ${MARKETS.map(m => `<option value="${m.key}" ${state.form.mercato === m.key ? 'selected' : ''}>${m.label}</option>`).join('')}
                   </select>
                 </div>
                 <div>
-                  <label class="block text-[11px] font-semibold text-gray-400 mb-1">Esito Specifico</label>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1">Esito Specifico</label>
                   <input type="text" required placeholder="Es. 2, 1X, GOAL + OVER"
                     value="${escapeHtml(state.form.esito)}"
                     oninput="updateFormField('esito', this.value)"
@@ -3687,7 +3687,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <div class="flex flex-wrap gap-1.5">
                 ${activeMarketObj.suggestions.map(s => `
                   <button type="button" onclick="selectOutcomeSuggestion('${escapeJs(s)}')"
-                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold border transition ${
                       state.form.esito === s
                         ? 'bg-[#C8102E] btn-keep-white border-[#C8102E]'
                         : 'bg-[#121212] text-gray-300 border-white/10 hover:border-[#C8102E]/50'
@@ -3697,14 +3697,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-[11px] font-semibold text-gray-400 mb-1">4. Quota Sisal (min. ${minQ.toFixed(2)})</label>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1">4. Quota Sisal (min. ${minQ.toFixed(2)})</label>
                   <input type="number" step="0.01" min="${minQ.toFixed(2)}" required placeholder="1.75"
                     value="${escapeHtml(state.form.quota)}"
                     oninput="updateFormField('quota', this.value)"
                     class="w-full px-3.5 py-2.5 rounded-xl bg-[#121212] border border-white/15 text-[#FF6B7D] font-black text-base placeholder-gray-600 focus:outline-none focus:border-[#C8102E]" />
                 </div>
                 <div>
-                  <label class="block text-[11px] font-semibold text-gray-400 mb-1">Data / Ora (opz.)</label>
+                  <label class="block text-xs font-semibold text-gray-400 mb-1">Data / Ora (opz.)</label>
                   <input type="text" placeholder="Es. 08/11 - 15:00"
                     value="${escapeHtml(state.form.dataOra)}"
                     oninput="updateFormField('dataOra', this.value)"
@@ -3726,7 +3726,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="space-y-2.5">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Giocate Nuova Giornata (${picks.length})</h2>
-            ${adminMode && picks.length > 0 ? `<span class="text-[10px] text-[#FF8A98] font-semibold">Tocca quota @ per modificare al volo</span>` : ''}
+            ${adminMode && picks.length > 0 ? `<span class="text-xs text-[#FF8A98] font-semibold">Tocca quota @ per modificare al volo</span>` : ''}
           </div>
           ${picksListHtml}
         </div>
@@ -3766,8 +3766,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
       const batchSelectorHtml = `
         <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-3.5 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Seleziona Puntata / Sessione</span>
-            <span class="text-[10px] text-[#FF6B7D] font-bold">${batches.length} giocat${batches.length === 1 ? 'a' : 'e'}</span>
+            <span class="text-xs font-extrabold uppercase tracking-wider text-gray-400">Seleziona Puntata / Sessione</span>
+            <span class="text-xs text-[#FF6B7D] font-bold">${batches.length} giocat${batches.length === 1 ? 'a' : 'e'}</span>
           </div>
           <div class="flex sm:grid sm:grid-cols-3 gap-2 overflow-x-auto no-scrollbar pb-1">
             ${batches.map(b => {
@@ -3786,7 +3786,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       : 'bg-[#121212] hover:bg-[#261C1F] border-white/10 text-gray-300'
                   }">
                   <div class="text-xs font-extrabold truncate">${escapeHtml(cleanBLabel)}</div>
-                  <div class="text-[10px] text-gray-400 truncate mt-0.5">${escapeHtml(statusTxt)}</div>
+                  <div class="text-xs text-gray-400 truncate mt-0.5">${escapeHtml(statusTxt)}</div>
                 </button>
               `;
             }).join('')}
@@ -3799,7 +3799,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     : 'bg-[#121212] hover:bg-[#261C1F] border-white/10 text-gray-300'
                 }">
                 <div class="text-xs font-extrabold truncate text-amber-300">📝 Bozza Nuova Giornata</div>
-                <div class="text-[10px] text-gray-400 truncate mt-0.5">${draftPicks.length} partite · Non ancora giocata</div>
+                <div class="text-xs text-gray-400 truncate mt-0.5">${draftPicks.length} partite · Non ancora giocata</div>
               </button>
             ` : ''}
           </div>
@@ -3811,7 +3811,8 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const hasMismatches = Array.isArray(report.mismatches) && report.mismatches.length > 0;
         const hasUnmatched = Array.isArray(report.unmatched) && report.unmatched.length > 0;
         const hasMissing = Array.isArray(report.missingFromReceipt) && report.missingFromReceipt.length > 0;
-        const matchedCount = Array.isArray(report.matched) ? report.matched.length : 0;
+        const matchedList = Array.isArray(report.matched) ? report.matched : [];
+        const matchedCount = matchedList.length;
         const hasAnyIssue = hasMismatches || hasUnmatched || hasMissing;
 
         const singleSwapCandidate = (hasMissing && hasUnmatched && report.missingFromReceipt.length === 1 && report.unmatched.length === 1)
@@ -3826,18 +3827,24 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   ? `✅ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): tutto allineato (${matchedCount} OK)`
                   : `⚠️ Check Partite & Quote (${report.receiptsChecked || receipts.length || 1} cedolin${(report.receiptsChecked || receipts.length || 1) === 1 ? 'o' : 'i'}): ${matchedCount} OK${hasMismatches ? ' · ' + report.mismatches.length + ' quote diverse' : ''}${hasUnmatched ? ' · ' + report.unmatched.length + ' extra su cedolino' : ''}${hasMissing ? ' · ' + report.missingFromReceipt.length + ' assenti sui cedolini' : ''}`}
               </span>
-              <button type="button" onclick="dismissReceiptReport()" class="text-[11px] text-gray-400 hover:text-white">✕</button>
+              <button type="button" onclick="dismissReceiptReport()" class="text-xs text-gray-400 hover:text-white">✕</button>
             </div>
+
+            ${matchedCount > 0 ? `
+              <div class="text-xs text-gray-300">
+                Abbinate con quota conforme: <strong>${matchedList.map(m => `${escapeHtml(m.partita)} (@${Number(m.quota).toFixed(2)})`).join(' · ')}</strong>
+              </div>
+            ` : ''}
 
             ${singleSwapCandidate ? `
               <div class="p-2.5 rounded-xl bg-[#121212] border border-[#C8102E]/40 flex items-center justify-between gap-2 flex-wrap">
-                <div class="text-[11px] text-gray-200 min-w-0">
+                <div class="text-xs text-gray-200 min-w-0">
                   <div>Partita cambiata sul cedolino per <strong>${escapeHtml(singleSwapCandidate.oldPick.playerName)}</strong>:</div>
                   <div><span class="line-through text-red-400">${escapeHtml(singleSwapCandidate.oldPick.partita)}</span> → <strong class="text-[#4ADE80]">${escapeHtml(singleSwapCandidate.newReceiptItem.partita)} (@${singleSwapCandidate.newReceiptItem.receiptQuota.toFixed(2)})</strong></div>
                 </div>
                 <button type="button"
                   onclick="replacePickWithReceiptItem('${singleSwapCandidate.oldPick.pickId}', '${escapeJs(singleSwapCandidate.newReceiptItem.partita)}', '${escapeJs(singleSwapCandidate.newReceiptItem.mercatoEsito)}', '${singleSwapCandidate.newReceiptItem.receiptQuota}')"
-                  class="px-3 py-1.5 rounded-lg bg-[#C8102E] hover:bg-[#E01938] btn-keep-white font-extrabold text-[11px] shrink-0">
+                  class="px-3 py-1.5 rounded-lg bg-[#C8102E] hover:bg-[#E01938] btn-keep-white font-extrabold text-xs shrink-0">
                   🔄 Sostituisci e Allinea
                 </button>
               </div>
@@ -3846,13 +3853,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             ${hasMismatches ? `
               <div class="space-y-1.5">
                 ${report.mismatches.map(m => `
-                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#121212] text-[11px]">
+                  <div class="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#121212] text-xs">
                     <div class="min-w-0">
                       <div class="font-bold text-white truncate">${escapeHtml(m.partita)}</div>
                       <div class="text-gray-400">App: <span class="line-through">${m.appQuota.toFixed(2)}</span> → Cedolino: <strong class="text-amber-300">${m.receiptQuota.toFixed(2)}</strong></div>
                     </div>
                     <button type="button" onclick="updatePickFinalQuota('${m.pickId}', '${m.receiptQuota}')"
-                      class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-[10px] shrink-0">
+                      class="px-2.5 py-1 rounded-lg bg-amber-400 text-[#121212] font-extrabold text-xs shrink-0">
                       Allinea
                     </button>
                   </div>
@@ -3865,14 +3872,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             ` : ''}
 
             ${hasUnmatched && !singleSwapCandidate ? `
-              <div class="p-2 rounded-xl bg-[#121212] text-[11px] text-amber-200 space-y-0.5">
+              <div class="p-2 rounded-xl bg-[#121212] text-xs text-amber-200 space-y-0.5">
                 <div class="font-bold">⚽ Partite sul cedolino non trovate nella puntata:</div>
                 <div>${report.unmatched.map(u => `${escapeHtml(u.partita)} (@${u.receiptQuota.toFixed(2)})`).join(' · ')}</div>
               </div>
             ` : ''}
 
             ${hasMissing && !singleSwapCandidate ? `
-              <div class="p-2 rounded-xl bg-[#121212] text-[11px] text-red-300 space-y-0.5">
+              <div class="p-2 rounded-xl bg-[#121212] text-xs text-red-300 space-y-0.5">
                 <div class="font-bold">🚫 Partite nella puntata ma assenti su tutti i cedolini caricati:</div>
                 <div>${report.missingFromReceipt.map(m => `${escapeHtml(m.partita)} (${escapeHtml(m.playerName)} @${m.quota.toFixed(2)})`).join(' · ')}</div>
               </div>
@@ -3902,11 +3909,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                     <span class="font-bold text-sm text-white truncate ${isChecked ? 'line-through opacity-60' : ''}">${escapeHtml(pk.partita)}</span>
                     ${!isTicketClosed && !isDraftView && adminMode ? `
                       <button type="button" onclick="openEditPlayedPickModal('${pk.id}')" title="Modifica o sostituisci partita"
-                        class="text-[11px] text-gray-400 hover:text-[#FF6B7D] shrink-0">✏️</button>
+                        class="text-xs text-gray-400 hover:text-[#FF6B7D] shrink-0">✏️</button>
                     ` : ''}
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
-                    <span class="text-[10px] text-gray-500">@</span>
+                    <span class="text-xs text-gray-500">@</span>
                     <input type="number" step="0.01" min="1.01" value="${Number(pk.quota).toFixed(2)}"
                       ${isTicketClosed || isDraftView || !adminMode ? 'disabled' : ''}
                       onchange="updatePickFinalQuota('${pk.id}', this.value)"
@@ -3915,16 +3922,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 </div>
                 <div class="flex items-center justify-between gap-2 mt-0.5">
                   <span class="text-xs text-gray-400 truncate">${escapeHtml(pk.mercato)}</span>
-                  <span class="text-[10px] text-gray-500 shrink-0">${escapeHtml(pk.dataOra || '')}</span>
+                  <span class="text-xs text-gray-500 shrink-0">${escapeHtml(pk.dataOra || '')}</span>
                 </div>
 
                 ${mm && !isTicketClosed && !isDraftView && adminMode ? `
                   <div class="mt-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-between gap-2">
-                    <span class="text-[11px] text-amber-300 font-semibold">
+                    <span class="text-xs text-amber-300 font-semibold">
                       ⚠️ Cedolino: <strong>${mm.receiptQuota.toFixed(2)}</strong> (in app: ${mm.appQuota.toFixed(2)})
                     </span>
                     <button type="button" onclick="updatePickFinalQuota('${pk.id}', '${mm.receiptQuota}')"
-                      class="px-2 py-1 rounded-md bg-amber-400 text-[#121212] font-extrabold text-[10px] shrink-0">
+                      class="px-2 py-1 rounded-md bg-amber-400 text-[#121212] font-extrabold text-xs shrink-0">
                       Allinea a ${mm.receiptQuota.toFixed(2)}
                     </button>
                   </div>
@@ -3932,18 +3939,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
                 <div class="flex items-center justify-between gap-2 mt-2.5">
                   <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] font-semibold text-gray-300 truncate">${escapeHtml(pk.playerName)}</span>
-                    ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-[10px] font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
+                    <span class="px-2 py-0.5 rounded bg-white/5 text-xs font-semibold text-gray-300 truncate">${escapeHtml(pk.playerName)}</span>
+                    ${pk.isJolly ? `<span class="px-2 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-xs font-bold shrink-0">⭐ Da Schedina A</span>` : ''}
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
                     <button onclick="setPickStatus('${pk.id}', 'won')" ${isTicketClosed || isDraftView || !adminMode ? 'disabled' : ''}
-                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold border transition disabled:opacity-50 ${
                         pk.status === 'won'
                           ? 'bg-[#22C55E] text-[#09150D] border-[#22C55E]'
                           : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#4ADE80]'
                       }">✅ Presa</button>
                     <button onclick="setPickStatus('${pk.id}', 'lost')" ${isTicketClosed || isDraftView || !adminMode ? 'disabled' : ''}
-                      class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition disabled:opacity-50 ${
+                      class="px-2.5 py-1 rounded-lg text-xs font-bold border transition disabled:opacity-50 ${
                         pk.status === 'lost'
                           ? 'bg-[#C8102E] btn-keep-white border-[#FF6B7D]'
                           : 'bg-[#121212] text-gray-400 border-white/10 hover:text-[#FF6B7D]'
@@ -3967,22 +3974,22 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               <button type="button" onclick="dismissAIResultPreview()" class="text-xs text-gray-400 hover:text-white">✕</button>
             </div>
             ${missing.length > 0 ? `
-              <div class="p-2 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[11px] text-amber-200">
+              <div class="p-2 rounded-xl bg-amber-500/15 border border-amber-500/35 text-xs text-amber-200">
                 ⚠️ Partite della Schedina ${ticketType} non trovate in questo screen: <strong>${missing.map(m => escapeHtml(m)).join(', ')}</strong>
               </div>
             ` : ''}
             <div class="space-y-1.5">
               ${items.map((it, idx) => {
                 const stBadge = it.status === 'won'
-                  ? '<span class="px-2 py-0.5 rounded bg-[#22C55E] text-[#09150D] font-black text-[10px]">✅ Presa</span>'
+                  ? '<span class="px-2 py-0.5 rounded bg-[#22C55E] text-[#09150D] font-black text-xs">✅ Presa</span>'
                   : it.status === 'lost'
-                    ? '<span class="px-2 py-0.5 rounded bg-[#C8102E] btn-keep-white font-black text-[10px]">❌ Persa</span>'
-                    : '<span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-[10px]">⏳ In attesa</span>';
+                    ? '<span class="px-2 py-0.5 rounded bg-[#C8102E] btn-keep-white font-black text-xs">❌ Persa</span>'
+                    : '<span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-xs">⏳ In attesa</span>';
                 return `
                   <div class="p-2 rounded-xl bg-[#1C1517] border border-white/10 flex items-center justify-between gap-2">
                     <div class="min-w-0">
                       <div class="text-xs font-bold text-white truncate">${escapeHtml(it.partita)}</div>
-                      <div class="text-[10px] text-gray-400 truncate">${escapeHtml(it.mercato)}${it.reason ? ' · ' + escapeHtml(it.reason) : ''}</div>
+                      <div class="text-xs text-gray-400 truncate">${escapeHtml(it.mercato)}${it.reason ? ' · ' + escapeHtml(it.reason) : ''}</div>
                     </div>
                     <button type="button" onclick="cycleAIResultPreviewStatus(${idx})" title="Tocca per cambiare stato" class="shrink-0">
                       ${stBadge}
@@ -4019,7 +4026,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             : `<span class="px-2.5 py-1 rounded-lg border border-[#C8102E]/60 bg-[#C8102E]/15 text-[#FF8A98] text-xs font-black">Sistema 1 errore</span>`;
 
       const receiptsHtml = receipts.length === 0
-        ? `<div class="text-[11px] text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai verificare partite/quote e scalare il costo in cassa.</div>`
+        ? `<div class="text-xs text-gray-500 py-2">Nessun cedolino caricato ancora per questa puntata. Caricandolo potrai verificare partite/quote e scalare il costo in cassa.</div>`
         : `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mt-2">
             ${receipts.map(rc => {
               const imgSrc = rc.url || rc.dataUrl;
@@ -4028,18 +4035,18 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <div class="relative rounded-xl overflow-hidden border border-white/10 bg-[#121212] flex flex-col">
                   <button type="button" onclick="openReceiptPreview('${rc.id}')" class="block w-full text-left">
                     <img src="${imgSrc}" alt="${escapeHtml(rc.name)}" class="w-full h-24 object-cover" />
-                    <div class="px-2 pt-1.5 text-[10px] text-gray-300 truncate">${escapeHtml(rc.name)}</div>
+                    <div class="px-2 pt-1.5 text-xs text-gray-300 truncate">${escapeHtml(rc.name)}</div>
                   </button>
                   <div class="p-1.5 flex items-center justify-between gap-1">
                     ${adminMode ? `
                       <button type="button" onclick="recheckExistingReceipt('${rc.id}')" ${isCheckingThis || state.checkingAllReceipts ? 'disabled' : ''}
-                        class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-[10px] transition">
+                        class="flex-1 py-1 rounded-lg bg-[#C8102E]/20 hover:bg-[#C8102E]/30 text-[#FF8A98] font-bold text-xs transition">
                         ${isCheckingThis ? 'Verifica...' : '🔍 Check quote'}
                       </button>
-                    ` : `<span class="text-[10px] text-gray-500 px-1">Allegato</span>`}
+                    ` : `<span class="text-xs text-gray-500 px-1">Allegato</span>`}
                     ${canPlay ? `
                       <button type="button" onclick="deleteReceipt('${rc.id}')" aria-label="Rimuovi cedolino"
-                        class="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-[10px] font-bold">✕</button>
+                        class="px-2 py-1 rounded-lg bg-red-500/15 text-red-400 hover:text-white text-xs font-bold">✕</button>
                     ` : ''}
                   </div>
                 </div>
@@ -4071,17 +4078,17 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         ${!isDraftView ? `
           <section class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/40 p-4 space-y-3 shadow-lg">
             <div class="flex items-center justify-between gap-2 flex-wrap">
-              <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#C8102E] btn-keep-white">
+              <span class="px-2.5 py-1 rounded-lg text-xs font-black uppercase tracking-wider bg-[#C8102E] btn-keep-white">
                 🔴⚫ ${escapeHtml(stripDemoText(currentBatch.label))}
               </span>
               <div class="flex items-center gap-2">
                 ${adminMode && !closedA && !closedB ? `
                   <button type="button" onclick="refreezeBatchFromCurrentPicks('${currentBatch.id}')"
-                    class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold text-gray-300 transition">
+                    class="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-bold text-gray-300 transition">
                     🔄 Riallinea A/B
                   </button>
                 ` : ''}
-                <span class="text-[10px] ${chargedAmount > 0 ? 'text-[#4ADE80] font-bold' : 'text-amber-300 font-semibold'}">
+                <span class="text-xs ${chargedAmount > 0 ? 'text-[#4ADE80] font-bold' : 'text-amber-300 font-semibold'}">
                   ${chargedAmount > 0 ? `Scalati: -${formatEuro(chargedAmount)}` : 'Costo non scalato'}
                 </span>
               </div>
@@ -4090,20 +4097,20 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="p-3 rounded-2xl bg-[#171717] border border-white/5 space-y-2">
               <div class="flex items-center justify-between gap-2 flex-wrap">
                 <div>
-                  <div class="text-xs font-bold text-white">Cedolini Sisal, Check Partite/Quote & Scarico Cassa</div>
-                  <div class="text-[10px] text-gray-400">Verifica partite e quote su tutti i cedolini e scala il costo in cassa.</div>
+                  <div class="text-sm font-bold text-white">Cedolini Sisal, Check Partite/Quote & Scarico Cassa</div>
+                  <div class="text-xs text-gray-400">Verifica partite e quote su tutti i cedolini e scala il costo in cassa.</div>
                 </div>
                 <div class="flex items-center gap-1.5">
                   ${adminMode && receipts.length > 0 ? `
                     <button type="button" onclick="recheckAllBatchReceipts()" ${state.checkingAllReceipts || state.uploadingReceipts ? 'disabled' : ''}
-                      class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-[#FF8A98] font-bold text-[10px] shrink-0 transition">
+                      class="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-50 text-[#FF8A98] font-bold text-xs shrink-0 transition">
                       ${state.checkingAllReceipts ? 'Verifica...' : '🔍 Check Tutti'}
                     </button>
                   ` : ''}
                   ${canPlay ? `
                     <input id="receipt-file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleReceiptUpload(event)" />
                     <button type="button" onclick="triggerReceiptUpload()" ${state.uploadingReceipts ? 'disabled' : ''}
-                      class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-50 btn-keep-white font-bold text-[11px] shrink-0 transition">
+                      class="px-3 py-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] disabled:opacity-50 btn-keep-white font-bold text-xs shrink-0 transition">
                       ${state.uploadingReceipts ? 'Caricamento...' : '+ Carica Cedolino'}
                     </button>
                   ` : ''}
@@ -4113,11 +4120,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
               ${canPlay ? `
                 <div class="pt-2 border-t border-white/5 flex items-center justify-between gap-2">
-                  <span class="text-[11px] text-gray-400">
+                  <span class="text-xs text-gray-400">
                     ${chargedAmount > 0 ? `Costo scalato: <strong class="text-white">${formatEuro(chargedAmount)}</strong>` : 'Costo da scalare alla conferma cedolino'}
                   </span>
                   <button type="button" onclick="openChargeBatchCashModal('${currentBatch.id}', 10.00)"
-                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-[#FF8A98] font-bold text-[10px] shrink-0 transition">
+                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-[#FF8A98] font-bold text-xs shrink-0 transition">
                     ${chargedAmount > 0 ? '✏️ Modifica Scarico' : '💳 Scarica Costo Cassa'}
                   </button>
                 </div>
@@ -4133,7 +4140,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
               <div class="flex items-center justify-between gap-2">
                 <div>
-                  <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
+                  <div class="text-xs font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina A · Secca</div>
                   <h2 class="font-black text-lg text-white leading-tight">${calc.ticketA.picks.length} Partite (Quote più basse)</h2>
                 </div>
                 ${aBadge}
@@ -4141,11 +4148,11 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
               <div class="grid grid-cols-2 gap-2.5">
                 <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                  <div class="text-[10px] font-semibold text-[#FF8A98]">Puntata</div>
+                  <div class="text-xs font-semibold text-[#FF8A98]">Puntata</div>
                   <div class="font-black text-base text-white">5,00 €</div>
                 </div>
                 <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                  <div class="text-[10px] font-semibold text-[#FF8A98]">Vincita potenziale</div>
+                  <div class="text-xs font-semibold text-[#FF8A98]">Vincita potenziale</div>
                   <div class="font-black text-base text-white">${formatEuro(calc.ticketA.potentialWin)}</div>
                 </div>
               </div>
@@ -4153,16 +4160,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ${!isDraftView && adminMode ? `
                 <div class="grid grid-cols-2 gap-2">
                   <button type="button" onclick="triggerResultScreenshotUpload('A')" ${closedA || state.loadingResultAI === 'A' ? 'disabled' : ''}
-                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
                     <span>${state.loadingResultAI === 'A' ? '⏳ Lettura...' : '🤖 Verifica AI A'}</span>
                   </button>
                   ${!closedA ? `
                     <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'A')"
-                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition">
                       <span>🏁 Chiudi A</span>
                     </button>
                   ` : `
-                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
+                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-xs text-center">
                       ✅ Chiusa in Puntate
                     </div>
                   `}
@@ -4181,7 +4188,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
             <div class="rossonero-pattern p-4 border-b border-white/10 space-y-3">
               <div class="flex items-center justify-between gap-2">
                 <div>
-                  <div class="text-[10px] font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
+                  <div class="text-xs font-bold uppercase tracking-widest text-[#FF6B7D]">Schedina B · Sistema</div>
                   <h2 class="font-black text-lg text-white leading-tight">${calc.ticketB.picks.length} Partite (5 restanti + Jolly)</h2>
                 </div>
                 ${bBadge}
@@ -4189,15 +4196,15 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
               <div class="grid grid-cols-3 gap-2">
                 <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                  <div class="text-[10px] font-semibold text-gray-400">Puntata</div>
+                  <div class="text-xs font-semibold text-gray-400">Puntata</div>
                   <div class="font-black text-sm text-white">5,00 €</div>
                 </div>
                 <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                  <div class="text-[10px] font-semibold text-amber-400">Min (5/6)</div>
+                  <div class="text-xs font-semibold text-amber-400">Min (5/6)</div>
                   <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.minWin)}</div>
                 </div>
                 <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-center">
-                  <div class="text-[10px] font-semibold text-[#4ADE80]">Max (6/6)</div>
+                  <div class="text-xs font-semibold text-[#4ADE80]">Max (6/6)</div>
                   <div class="font-black text-sm text-white">${formatEuro(calc.ticketB.maxWin)}</div>
                 </div>
               </div>
@@ -4205,23 +4212,23 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               ${!isDraftView && adminMode ? `
                 <div class="grid grid-cols-2 gap-2">
                   <button type="button" onclick="triggerResultScreenshotUpload('B')" ${closedB || state.loadingResultAI === 'B' ? 'disabled' : ''}
-                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition">
+                    class="py-2.5 px-2.5 rounded-xl bg-[#2A1D20] hover:bg-[#382529] border border-white/15 disabled:opacity-50 btn-keep-white font-bold text-xs flex items-center justify-center gap-1.5 transition">
                     <span>${state.loadingResultAI === 'B' ? '⏳ Lettura...' : '🤖 Verifica AI B'}</span>
                   </button>
                   ${!closedB ? `
                     <button type="button" onclick="openSingleTicketCloseModal('${currentBatch.id}', 'B')"
-                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] flex items-center justify-center gap-1.5 transition">
+                      class="py-2.5 px-2.5 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-xs flex items-center justify-center gap-1.5 transition">
                       <span>🏁 Chiudi B</span>
                     </button>
                   ` : `
-                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-[11px] text-center">
+                    <div class="py-2.5 px-2.5 rounded-xl bg-[#22C55E]/15 text-[#4ADE80] font-extrabold text-xs text-center">
                       ✅ Chiusa in Puntate
                     </div>
                   `}
                 </div>
               ` : ''}
 
-              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-[11px] text-gray-400 space-y-1">
+              <div class="rossonero-box-dark p-2.5 rounded-xl bg-[#1F1719] border border-white/10 text-xs text-gray-400 space-y-1">
                 <div class="flex justify-between">
                   <span>6 su 6 (0,50 € × 1 col.):</span>
                   <span class="font-bold text-white">0,50 € → ${formatEuro(calc.ticketB.win6Col)}</span>
@@ -4262,16 +4269,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
       const renderHistoryPickRows = (list = []) => {
         if (!Array.isArray(list) || list.length === 0) {
-          return `<div class="text-[11px] text-gray-500 py-1">Nessuna partita registrata.</div>`;
+          return `<div class="text-xs text-gray-500 py-1">Nessuna partita registrata.</div>`;
         }
         return list.map(pk => `
           <div class="flex items-center justify-between text-xs py-1.5 border-b border-white/5 last:border-0">
             <div class="min-w-0 pr-2">
-              <div class="font-bold text-white truncate">
+              <div class="font-bold text-sm text-white truncate">
                 ${pk.status === 'won' ? '✅' : pk.status === 'lost' ? '❌' : '⏳'} ${escapeHtml(pk.partita)}
-                ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-[9px] font-bold">⭐ Jolly</span>` : ''}
+                ${pk.isJolly ? `<span class="ml-1 px-1.5 py-0.5 rounded bg-[#C8102E]/25 text-[#FF8A98] text-xs font-bold">⭐ Jolly</span>` : ''}
               </div>
-              <div class="text-[10px] text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
+              <div class="text-xs text-gray-400 truncate">${escapeHtml(pk.mercato)} · ${escapeHtml(getPlayerName(pk.playerId))}</div>
             </div>
             <span class="font-black text-[#FF6B7D] shrink-0">@${Number(pk.quota).toFixed(2)}</span>
           </div>
@@ -4282,7 +4289,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Storico Puntate Chiuse (${history.length})</h2>
-            <span class="text-[10px] text-gray-500">Tocca per dettaglio schedine</span>
+            <span class="text-xs text-gray-500">Tocca per dettaglio schedine</span>
           </div>
 
           ${history.map(h => {
@@ -4311,7 +4318,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <button onclick="toggleHistoryExpand('${h.id}')" class="w-full text-left p-4 flex items-center justify-between gap-3 hover:bg-white/5 transition">
                   <div class="min-w-0">
                     <div class="font-black text-sm text-white truncate">${escapeHtml(cleanTitle)}</div>
-                    <div class="text-[11px] text-gray-400 mt-0.5">
+                    <div class="text-xs text-gray-400 mt-0.5">
                       ${wonAmt > 0 ? '✅ Schedina Vincente' : '❌ Schedina Perdente'} · ${escapeHtml(h.dateStr || '')}
                     </div>
                   </div>
@@ -4329,10 +4336,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       <div class="p-3 rounded-2xl bg-[#1C1517] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina A · Secca</div>
+                            <div class="text-xs font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina A · Secca</div>
                             <div class="text-xs font-bold text-white">Quota tot. ${Number(infoA.quotaTot || 0).toFixed(2)}</div>
                           </div>
-                          <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
+                          <span class="px-2.5 py-1 rounded-lg text-xs font-black ${
                             wonA ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E] btn-keep-white'
                           }">
                             ${wonA ? `VINCENTE (+${formatEuro(winValA)})` : 'PERDENTE'}
@@ -4346,10 +4353,10 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                       <div class="p-3 rounded-2xl bg-[#1C1517] border border-white/10 space-y-2">
                         <div class="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
                           <div>
-                            <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina B · Sistema</div>
+                            <div class="text-xs font-extrabold uppercase tracking-wider text-[#FF6B7D]">Schedina B · Sistema</div>
                             <div class="text-xs font-bold text-white">${escapeHtml(infoB.hitsLabel || 'Sistema 6 partite')}</div>
                           </div>
-                          <span class="px-2.5 py-1 rounded-lg text-[10px] font-black ${
+                          <span class="px-2.5 py-1 rounded-lg text-xs font-black ${
                             wonB ? 'bg-[#22C55E] text-[#09150D]' : 'bg-[#C8102E] btn-keep-white'
                           }">
                             ${wonB ? `VINCENTE (+${formatEuro(winValB)})` : 'PERDENTE'}
@@ -4404,7 +4411,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
               </div>
               <div>
                 <div class="font-bold text-sm text-white">${escapeHtml(p.name)}</div>
-                <div class="text-[11px] text-gray-500">Versato in cassa</div>
+                <div class="text-xs text-gray-500">Versato in cassa</div>
               </div>
             </div>
             <div class="flex items-center gap-2.5">
@@ -4427,7 +4434,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   <span class="text-base shrink-0">${icon}</span>
                   <div class="min-w-0">
                     <div class="text-xs font-bold text-white truncate">${escapeHtml(cleanNote)}</div>
-                    <div class="text-[10px] text-gray-500">${escapeHtml(t.date || '')}</div>
+                    <div class="text-xs text-gray-500">${escapeHtml(t.date || '')}</div>
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
@@ -4452,7 +4459,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
           <div class="flex items-center justify-between gap-2">
             <div class="text-xs font-bold uppercase tracking-wider text-gray-400">Saldo Attuale Cassa Comune</div>
             ${adminMode ? `
-              <button onclick="openSetBalanceModal()" class="px-2.5 py-1 rounded-lg bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 text-[11px] font-bold btn-keep-white transition">
+              <button onclick="openSetBalanceModal()" class="px-2.5 py-1 rounded-lg bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 text-xs font-bold btn-keep-white transition">
                 ✏️ Imposta Saldo
               </button>
             ` : ''}
@@ -4463,28 +4470,28 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
           <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/10">
             <div>
-              <div class="text-[10px] text-gray-400 uppercase font-semibold">Versato</div>
+              <div class="text-xs text-gray-400 uppercase font-semibold">Versato</div>
               <div class="font-bold text-sm text-white mt-0.5">${formatEuro(totalDeposited)}</div>
             </div>
             <div>
-              <div class="text-[10px] text-gray-400 uppercase font-semibold">Speso</div>
+              <div class="text-xs text-gray-400 uppercase font-semibold">Speso</div>
               <div class="font-bold text-sm text-[#FF6B7D] mt-0.5">-${formatEuro(totalBet)}</div>
             </div>
             <div>
-              <div class="text-[10px] text-gray-400 uppercase font-semibold">Vinto</div>
+              <div class="text-xs text-gray-400 uppercase font-semibold">Vinto</div>
               <div class="font-bold text-sm text-[#4ADE80] mt-0.5">+${formatEuro(totalWon)}</div>
             </div>
           </div>
 
           ${adminMode ? `
             <div class="grid grid-cols-3 gap-2 mt-4">
-              <button onclick="openCashModal('deposit')" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-[11px] transition">
+              <button onclick="openCashModal('deposit')" class="py-2.5 px-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-[#9E0B22] hover:from-[#E01938] hover:to-[#B50D28] btn-keep-white font-extrabold text-xs transition">
                 + Versamento
               </button>
-              <button onclick="openCashModal('adjustment')" class="py-2.5 px-2 rounded-xl bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 btn-keep-white font-bold text-[11px] transition">
+              <button onclick="openCashModal('adjustment')" class="py-2.5 px-2 rounded-xl bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 btn-keep-white font-bold text-xs transition">
                 ⚖️ Movimento
               </button>
-              <button onclick="openSetBalanceModal()" class="py-2.5 px-2 rounded-xl bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 text-[#FF8A98] font-bold text-[11px] transition">
+              <button onclick="openSetBalanceModal()" class="py-2.5 px-2 rounded-xl bg-[#1F1719] hover:bg-[#2d2124] border border-white/15 text-[#FF8A98] font-bold text-xs transition">
                 ✏️ Rettifica Saldo
               </button>
             </div>
@@ -4521,7 +4528,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
         return `
           <div class="flex flex-col items-center min-w-[64px] flex-1">
-            <div class="text-[10px] font-black text-[#4ADE80] h-4">${ps.won > 0 ? `+${ps.won}` : '0'}</div>
+            <div class="text-xs font-black text-[#4ADE80] h-5">${ps.won > 0 ? `+${ps.won}` : '0'}</div>
 
             <div class="w-full h-24 flex items-end justify-center pt-1">
               <div class="w-7 sm:w-8 rounded-t-lg bg-gradient-to-t from-[#16A34A] to-[#4ADE80] transition-all duration-500"
@@ -4535,16 +4542,16 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 style="height: ${lostPct}%"></div>
             </div>
 
-            <div class="text-[10px] font-black text-[#FF6B7D] h-4">${ps.lost > 0 ? `-${ps.lost}` : '0'}</div>
-            <div class="text-[11px] font-extrabold text-white truncate max-w-full mt-1">${escapeHtml(ps.name.split(' ')[0])}</div>
-            <div class="text-[10px] font-bold ${netColor}">${net > 0 ? `+${net}` : net}</div>
+            <div class="text-xs font-black text-[#FF6B7D] h-5">${ps.lost > 0 ? `-${ps.lost}` : '0'}</div>
+            <div class="text-xs font-extrabold text-white truncate max-w-full mt-1">${escapeHtml(ps.name.split(' ')[0])}</div>
+            <div class="text-xs font-bold ${netColor}">${net > 0 ? `+${net}` : net}</div>
           </div>
         `;
       }).join('');
 
       return `
         <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/10 space-y-3">
-          <div class="flex items-center justify-between gap-2 text-[10px] font-bold">
+          <div class="flex items-center justify-between gap-2 text-xs font-bold">
             <span class="text-[#4ADE80]">▲ Sopra zero: Puntate Prese</span>
             <span class="text-[#FF6B7D]">▼ Sotto zero: Puntate Perse</span>
           </div>
@@ -4581,7 +4588,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         const pct = Math.min(100, (Math.abs(pt.runningNet) / maxAbsVal) * 100);
         return `
           <div class="flex flex-col items-center min-w-[54px] flex-1">
-            <div class="text-[9px] font-black ${isPos ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'} mb-1">
+            <div class="text-xs font-black ${isPos ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'} mb-1">
               ${isPos ? '+' : ''}${pt.runningNet.toFixed(0)}€
             </div>
             <div class="w-full h-28 flex items-end justify-center bg-white/[0.02] rounded-xl p-1">
@@ -4591,14 +4598,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                   : 'bg-gradient-to-t from-[#7F1D1D] to-[#EF4444]'
               }" style="height: ${Math.max(8, pct)}%"></div>
             </div>
-            <div class="text-[9px] text-gray-400 font-semibold mt-1 truncate max-w-full">${escapeHtml(pt.label)}</div>
+            <div class="text-xs text-gray-400 font-semibold mt-1 truncate max-w-full">${escapeHtml(pt.label)}</div>
           </div>
         `;
       }).join('');
 
       return `
         <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/10 space-y-2">
-          <div class="flex items-center justify-between text-[10px] text-gray-400">
+          <div class="flex items-center justify-between text-xs text-gray-400">
             <span>Profitto netto progressivo (€)</span>
             <span class="font-bold text-[#FF8A98]">${points.length} chiusur${points.length === 1 ? 'a' : 'e'}</span>
           </div>
@@ -4672,14 +4679,14 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
                 <span class="text-base font-black w-6 text-center text-gray-400">${medal}</span>
                 <div>
                   <div class="font-bold text-sm text-white">${escapeHtml(ps.name)}</div>
-                  <div class="text-[11px] text-gray-400">
+                  <div class="text-xs text-gray-400">
                     <span class="text-[#4ADE80] font-bold">${ps.won} prese</span> · <span class="text-[#FF6B7D] font-bold">${ps.lost} perse</span> (${ps.total} tot)
                   </div>
                 </div>
               </div>
               <div class="text-right">
                 <div class="font-black text-lg text-[#FF6B7D] leading-none">${ps.hitRate.toFixed(0)}%</div>
-                <div class="text-[10px] text-gray-500 mt-0.5">Precisione</div>
+                <div class="text-xs text-gray-500 mt-0.5">Precisione</div>
               </div>
             </div>
 
@@ -4689,19 +4696,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
             <div class="grid grid-cols-4 gap-1.5 pt-1 text-center">
               <div class="p-1.5 rounded-lg bg-[#1C1517]">
-                <div class="text-[9px] text-gray-500 uppercase">Q. Media</div>
+                <div class="text-xs text-gray-500 uppercase">Q. Media</div>
                 <div class="text-xs font-bold text-white">${ps.avgPlayed > 0 ? ps.avgPlayed.toFixed(2) : '-'}</div>
               </div>
               <div class="p-1.5 rounded-lg bg-[#1C1517]">
-                <div class="text-[9px] text-gray-500 uppercase">Q. Presa</div>
+                <div class="text-xs text-gray-500 uppercase">Q. Presa</div>
                 <div class="text-xs font-bold text-[#4ADE80]">${ps.avgWon > 0 ? ps.avgWon.toFixed(2) : '-'}</div>
               </div>
               <div class="p-1.5 rounded-lg bg-[#1C1517]">
-                <div class="text-[9px] text-gray-500 uppercase">Max Presa</div>
+                <div class="text-xs text-gray-500 uppercase">Max Presa</div>
                 <div class="text-xs font-bold text-amber-400">${ps.maxWon > 0 ? ps.maxWon.toFixed(2) : '-'}</div>
               </div>
               <div class="p-1.5 rounded-lg bg-[#1C1517]">
-                <div class="text-[9px] text-gray-500 uppercase">Versato</div>
+                <div class="text-xs text-gray-500 uppercase">Versato</div>
                 <div class="text-xs font-bold text-white">${ps.deposited.toFixed(0)} €</div>
               </div>
             </div>
@@ -4715,13 +4722,13 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
           <div class="grid grid-cols-2 gap-2.5">
             <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
-              <div class="text-[11px] text-gray-400">Profitto Netto</div>
+              <div class="text-xs text-gray-400">Profitto Netto</div>
               <div class="font-black text-xl mt-0.5 ${netProfit >= 0 ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'}">
                 ${netProfit >= 0 ? '+' : ''}${formatEuro(netProfit)}
               </div>
             </div>
             <div class="p-3.5 rounded-2xl bg-[#121212] border border-white/5">
-              <div class="text-[11px] text-gray-400">ROI Totale</div>
+              <div class="text-xs text-gray-400">ROI Totale</div>
               <div class="font-black text-xl mt-0.5 ${roi >= 0 ? 'text-[#4ADE80]' : 'text-[#FF6B7D]'}">
                 ${roi >= 0 ? '+' : ''}${roi.toFixed(1)}%
               </div>
@@ -4730,19 +4737,19 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
 
           <div class="grid grid-cols-4 gap-2 text-center">
             <div class="p-2 rounded-xl bg-[#121212]">
-              <div class="text-[9px] text-gray-400 uppercase">Chiuse</div>
+              <div class="text-xs text-gray-400 uppercase">Chiuse</div>
               <div class="font-black text-sm text-white mt-0.5">${totalEntries}</div>
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
-              <div class="text-[9px] text-gray-400 uppercase">Win A</div>
+              <div class="text-xs text-gray-400 uppercase">Win A</div>
               <div class="font-black text-sm text-[#4ADE80] mt-0.5">${winRateA.toFixed(0)}%</div>
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
-              <div class="text-[9px] text-gray-400 uppercase">Win B</div>
+              <div class="text-xs text-gray-400 uppercase">Win B</div>
               <div class="font-black text-sm text-[#4ADE80] mt-0.5">${winRateB.toFixed(0)}%</div>
             </div>
             <div class="p-2 rounded-xl bg-[#121212]">
-              <div class="text-[9px] text-gray-400 uppercase">Hit Match</div>
+              <div class="text-xs text-gray-400 uppercase">Hit Match</div>
               <div class="font-black text-sm text-amber-400 mt-0.5">${globalHitRate.toFixed(0)}%</div>
             </div>
           </div>
@@ -4751,7 +4758,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Prese (+) vs Perse (-) per Persona</h2>
-            <span class="text-[10px] text-[#FF8A98] font-bold">Istogramma Giocatori</span>
+            <span class="text-xs text-[#FF8A98] font-bold">Istogramma Giocatori</span>
           </div>
           ${renderDivergentPlayerChart(playerStats)}
         </div>
@@ -4759,7 +4766,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="rounded-3xl bg-[#1C1517] border border-[#C8102E]/30 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Andamento Profitto Netto</h2>
-            <span class="text-[10px] text-gray-500">Storico chiusure</span>
+            <span class="text-xs text-gray-500">Storico chiusure</span>
           </div>
           ${renderProfitTrendChart(history)}
         </div>
@@ -4767,7 +4774,7 @@ Restituisci esclusivamente JSON valido conforme allo schema.`;
         <div class="rounded-3xl bg-[#1C1517] border border-white/10 p-4 space-y-3">
           <div class="flex items-center justify-between">
             <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Classifica Precisione Utenti</h2>
-            <span class="text-[10px] text-gray-500">Include esiti live</span>
+            <span class="text-xs text-gray-500">Include esiti live</span>
           </div>
           ${leaderboardHtml}
         </div>
